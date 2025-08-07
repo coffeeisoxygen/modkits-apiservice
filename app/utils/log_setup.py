@@ -92,6 +92,17 @@ def patch_warnings_to_loguru():
 def opener(file: str, flags: int) -> int:
     """Open a file with read/write by owner only permissions."""
     return os.open(file, flags, 0o600)
+
+class StreamToLogger:
+    """Redirects stdout/stderr to loguru logger."""
+    def __init__(self, level: str = "INFO"):
+        self._level = level
+    def write(self, buffer: str):
+        for line in buffer.rstrip().splitlines():
+            logger.opt(depth=1).log(self._level, line.rstrip())
+    def flush(self):
+        pass
+
 # ===========================================================================
 # LOGURU SETUP
 # ===========================================================================
@@ -153,7 +164,10 @@ def setup_loguru(
 
     logging.basicConfig(handlers=[InterceptHandler()], level=0)
     patch_warnings_to_loguru()
+    sys.stdout = StreamToLogger("INFO")
+    sys.stderr = StreamToLogger("ERROR")
 
+# redirecting setup
 
 # ===========================================================================
 # DECORATORS & CONTEXT MANAGERS
@@ -177,15 +191,3 @@ def simple_endpoint_logger(endpoint_name: str | None = None) -> Callable:
 # ===========================================================================
 
 endpoint_logger = simple_endpoint_logger
-
-
-
-class StreamToLogger:
-    """Redirects stdout/stderr to loguru logger."""
-    def __init__(self, level: str = "INFO"):
-        self._level = level
-    def write(self, buffer: str):
-        for line in buffer.rstrip().splitlines():
-            logger.opt(depth=1).log(self._level, line.rstrip())
-    def flush(self):
-        pass
