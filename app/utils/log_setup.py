@@ -92,27 +92,47 @@ def exception_format(record: Any) -> str:
         return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n{extra[stack]}\n"
     return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n"
 
-def setup_loguru(level: Level = "DEBUG", redaction: bool = True, redaction_mode: str = "hash") -> None:
+# Optional: Integrasi dengan pydantic-settings
+# from pydantic_settings import BaseSettings
+# class LogSettings(BaseSettings):
+#     log_level: str = "DEBUG"
+#     log_redaction: bool = True
+#     log_redaction_mode: str = "hash"
+#     log_sink_stdout: bool = True
+#     log_sink_stderr: bool = True
+#     class Config:
+#         env_prefix = "LOG_"
+
+def setup_loguru(
+    level: Level = "DEBUG",
+    redaction: bool = True,
+    redaction_mode: str = "hash",
+    sink_stdout: bool = True,
+    sink_stderr: bool = True
+    ) -> None:
     """Setup loguru logger with safe default configurations."""
     logger.remove()  # Remove the default logger
 
-    # Main handler for stdout
-    logger.add(
-        sink=sys.stdout,
-        level=level,
-        format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
-        backtrace=True,
-        diagnose=True,
-    )
+    if not sink_stdout and not sink_stderr:
+        raise RuntimeError("At least one of sink_stdout or sink_stderr must be True for logger setup.")
 
-    # Special handler for ERROR level with stackprinter
-    logger.add(
-        sys.stderr,
-        level="ERROR",
-        format=exception_format,
-        backtrace=True,
-        diagnose=True,
-    )
+    if sink_stdout:
+        logger.add(
+            sink=sys.stdout,
+            level=level,
+            format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
+            backtrace=True,
+            diagnose=True,
+        )
+
+    if sink_stderr:
+        logger.add(
+            sys.stderr,
+            level="ERROR",
+            format=exception_format,
+            backtrace=True,
+            diagnose=True,
+        )
 
     if redaction:
         logger.configure(patcher=sensitive_data_patcher)
@@ -131,6 +151,16 @@ def setup_loguru(level: Level = "DEBUG", redaction: bool = True, redaction_mode:
             )
 
     logging.basicConfig(handlers=[InterceptHandler()], level=0)
+
+# Contoh penggunaan pydantic-settings:
+# settings = LogSettings()  # otomatis baca dari .env
+# setup_loguru(
+#     level=settings.log_level,
+#     redaction=settings.log_redaction,
+#     redaction_mode=settings.log_redaction_mode,
+#     sink_stdout=settings.log_sink_stdout,
+#     sink_stderr=settings.log_sink_stderr,
+# )
 
 # ===========================================================================
 # DECORATORS & CONTEXT MANAGERS
