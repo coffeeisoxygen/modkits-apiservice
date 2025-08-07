@@ -14,6 +14,7 @@ from app.dependencies.dep_context import (
 from app.dependencies.dep_settings import AppConfig, AppConfigDep
 from app.utils.log_setup import logger, simple_endpoint_logger
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
     title="Modkits API Service",
@@ -23,6 +24,13 @@ app = FastAPI(
 )
 
 app.add_middleware(LoggingMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/", tags=["General"])

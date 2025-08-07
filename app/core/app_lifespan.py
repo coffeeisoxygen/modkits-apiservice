@@ -4,13 +4,13 @@ Setup loguru logging and handle startup/shutdown events using lifespan context.
 """
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+
 from app.dependencies.dep_settings import get_log_settings
-from app.utils.log_setup import setup_loguru, logger
+from app.utils.log_setup import logger, setup_loguru
 
 
 @asynccontextmanager
-async def app_lifespan(app: FastAPI):
+async def app_lifespan(app):  # noqa: ANN001, ARG001, RUF029
     """Lifespan context for FastAPI app: setup logging and log events."""
     # Setup logging from settings (auto profile + override support)
     log_settings = get_log_settings()
@@ -24,6 +24,7 @@ async def app_lifespan(app: FastAPI):
         serialize=log_settings.log_serialization,
         enqueue=log_settings.log_enqueue,
         diagnose=log_settings.log_diagnose,
+        log_format=log_settings.log_format,
     )
     logger.info("🚀 FastAPI application starting up (lifespan)")
     try:
