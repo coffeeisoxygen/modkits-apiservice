@@ -7,6 +7,7 @@ from collections.abc import Callable
 from fastapi import FastAPI, Request
 from app.utils.log_setup import setup_loguru, logger, simple_endpoint_logger
 from app.dependencies.dep_settings import AppConfig, AppConfigDep
+from app.dependencies.dep_context import request_id_ctx, client_ip_ctx, RequestIdDep, ClientIpDep
 
 # Initialize and configure logging
 setup_loguru(redaction=True, redaction_mode="hash")
@@ -29,9 +30,12 @@ async def shutdown_event():
 
 @app.middleware("http")
 async def logging_middleware(request: Request, call_next: Callable):
-    """Middleware to log requests, responses, and performance."""
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     client_ip = request.client.host if request.client else "unknown"
+
+    # Set contextvars
+    request_id_ctx.set(request_id)
+    client_ip_ctx.set(client_ip)
 
     with logger.contextualize(request_id=request_id, client_ip=client_ip):
         logger.info(f"Request: {request.method} {request.url.path}")
@@ -94,4 +98,13 @@ async def test_sensitive_data():
     return {
         "status": "test completed",
         "message": "Check logs to see sensitive data redaction in action"
+    }
+
+@app.get("/whoami", tags=["Debug"])
+@simple_endpoint_logger("whoami")
+async def whoami(request_id: RequestIdDep, client_ip: ClientIpDep):
+    """Show current request_id and client_ip from context."""
+    return {
+        "request_id": request_id,
+        "client_ip": client_ip
     }
