@@ -83,6 +83,7 @@ import time
 import traceback
 import warnings
 from collections.abc import Callable
+from contextlib import contextmanager
 from itertools import takewhile
 from typing import Any
 
@@ -298,3 +299,108 @@ def patch_warnings_to_loguru():
         showwarning_(message, *args, **kwargs)
 
     warnings.showwarning = showwarning
+
+
+def bind_request_context(request_id: str, client_ip: str) -> Any:
+    """Bind request context to logger for consistent logging across endpoints.
+
+    Args:
+        request_id (str): Unique request identifier
+        client_ip (str): Client IP address
+
+    Returns:
+        Logger instance with bound context
+
+    Example:
+        >>> log = bind_request_context("req-123", "192.168.1.1")
+        >>> log.info("Processing user data")
+        # Output: ... Processing user data {'request_id': 'req-123', 'client_ip': '192.168.1.1'}
+    """
+    return logger.bind(request_id=request_id, client_ip=client_ip)
+
+
+@contextmanager
+def track_endpoint_performance(endpoint_name: str, request_id: str, client_ip: str):
+    """Context manager for tracking endpoint performance with automatic logging.
+
+    Args:
+        endpoint_name (str): Name of the endpoint being tracked
+        request_id (str): Unique request identifier
+        client_ip (str): Client IP address
+
+    Example:
+        >>> with track_endpoint_performance(
+        ...     "get_users", "req-123", "192.168.1.1"
+        ... ):
+        ...     # endpoint logic here
+        ...     return {"users": []}
+        # Output:
+        # ... Entering endpoint 'get_users' {'request_id': 'req-123', 'client_ip': '192.168.1.1'}
+        # ... Exiting endpoint 'get_users' in 0.0234s {'request_id': 'req-123', 'client_ip': '192.168.1.1'}
+    """
+    log = bind_request_context(request_id, client_ip)
+    start_time = time.time()
+
+    log.info(f"Entering endpoint '{endpoint_name}'")
+
+    try:
+        yield log
+    except Exception as e:
+        execution_time = time.time() - start_time
+        log.error(
+            f"Endpoint '{endpoint_name}' failed in {execution_time:.4f}s with error: {str(e)}"
+        )
+        raise
+    else:
+        execution_time = time.time() - start_time
+        log.info(f"Exiting endpoint '{endpoint_name}' in {execution_time:.4f}s")
+
+
+def endpoint_logger(endpoint_name: str | None = None) -> Callable:
+    """Decorator for automatic endpoint logging with performance tracking.
+
+    Args:
+        endpoint_name (str, optional): Custom name for the endpoint.
+                                     If None, uses function name.
+
+    Returns:
+        Callable: Decorator function
+
+    Example:
+        >>> @endpoint_logger("user_management")
+        ... async def get_users(request_id: str, client_ip: str):
+        ...     # endpoint logic
+        ...     return {"users": []}
+    """
+
+    def decorator(func: Callable) -> Callable:
+        name = endpoint_name or func.__name__
+
+        @functools.wraps(func)
+        async def async_wrapper(*args, **kwargs):
+            # Extract request_id and client_ip from kwargs or context
+            request_id = kwargs.get("request_id", "unknown")
+            client_ip = kwargs.get("client_ip", "unknown")
+
+            with track_endpoint_performance(name, request_id, client_ip) as log:
+                # Add logger to kwargs so endpoint can use it
+                kwargs["log"] = log
+                return await func(*args, **kwargs)
+
+        @functools.wraps(func)
+        def sync_wrapper(*args, **kwargs):
+            # Extract request_id and client_ip from kwargs or context
+            request_id = kwargs.get("request_id", "unknown")
+            client_ip = kwargs.get("client_ip", "unknown")
+
+            with track_endpoint_performance(name, request_id, client_ip) as log:
+                # Add logger to kwargs so endpoint can use it
+                kwargs["log"] = log
+                return func(*args, **kwargs)
+
+        # Return appropriate wrapper based on function type
+        if hasattr(func, "__code__") and func.__code__.co_flags & 0x80:  # CO_COROUTINE
+            return async_wrapper
+        return sync_wrapper
+
+    return decorator
