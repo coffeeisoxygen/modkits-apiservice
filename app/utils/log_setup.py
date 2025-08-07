@@ -14,13 +14,8 @@ import re
 import stackprinter
 from loguru import logger
 
-# ===========================================================================
-# LOGURU LEVEL FOR EASIET TO PASS AS FUNCTION
 Level = Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
 
-# ===================================================================
-# SENSITIVE DATA REDACTION
-# ===================================================================
 
 SENSITIVE_PATTERNS = {
     "password": r"(?i)(password|pwd|pass)\s*[:=]\s*['\"]?([^'\"\s,}]+)",
@@ -149,9 +144,6 @@ class Rotator:
 
 # Rotate file if over 500 MB or at midnight every day
 rotator = Rotator(size="500MB", at=datetime.time(0, 0, 0))
-# ===========================================================================
-# LOGURU SETUP
-# ===========================================================================
 
 def exception_format(record: Any) -> str:
     """Custom format for exceptions with stackprinter."""
@@ -160,14 +152,17 @@ def exception_format(record: Any) -> str:
         return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n{extra[stack]}\n"
     return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n"
 
-
+# THE SETUP Goes Here
 def setup_loguru(
-    level: str = "DEBUG",
+    level: str = "DEBUG", #GLOBAL
     redaction: bool = True,
     redaction_mode: str = "hash",
     sink_stdout: bool = True,
     sink_stderr: bool = True,
     sink_file: str | None = None,
+    serialize: bool = False, # this goes to sys.stdout
+    enqueue: bool = True, # this goes to sys.stderr
+    diagnose: bool = False, # rgu
 
     ) -> None:
     """Setup loguru logger with safe default configurations."""
@@ -182,8 +177,10 @@ def setup_loguru(
             level=level,
             format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
             backtrace=True,
-            diagnose=True,
-        )
+            diagnose=diagnose,
+            serialize=False,
+            enqueue=False # Enqueue is False for stdout to avoid potential deadlocks
+         )
 
     if sink_stderr:
         logger.add(
@@ -191,7 +188,9 @@ def setup_loguru(
             level="ERROR",
             format=exception_format,
             backtrace=True,
-            diagnose=True,
+            diagnose=diagnose,
+            serialize=False,
+            enqueue=True,  # Enqueue is True for stderr to handle high volume logs
         )
     if sink_file:
         logger.add(
@@ -199,9 +198,10 @@ def setup_loguru(
             level=level,
             format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
             rotation=rotator.should_rotate,
+            opener=opener,
             compression="zip",
-            serialize=True,
-            enqueue=True,
+            serialize=serialize,
+            enqueue=enqueue,
             encoding="utf-8",
             mode="a",
             backtrace=True,

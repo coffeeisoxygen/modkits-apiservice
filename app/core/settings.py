@@ -56,6 +56,10 @@ class LogSettings(BaseModel):
     log_redaction_mode: str
     log_sink_stdout: bool
     log_sink_stderr: bool
+    log_sink_file: str
+    log_serialization: bool
+    log_enqueue: bool
+    log_diagnose: bool
 
     @field_validator("log_level")
     @classmethod
@@ -112,7 +116,10 @@ class Settings(BaseSettings):
     log_redaction_mode: str = Field(default="hash", alias="LOG_REDACTION_MODE")
     log_sink_stdout: bool = Field(default=True, alias="LOG_SINK_STDOUT")
     log_sink_stderr: bool = Field(default=True, alias="LOG_SINK_STDERR")
-
+    log_sink_file: str | None = Field(default=None, alias="LOG_SINK_FILE")
+    log_serialization: bool = Field(default=True, alias="LOG_SERIALIZATION")
+    log_enqueue: bool = Field(default=True, alias="LOG_ENQUEUE")
+    log_diagnose: bool = Field(default=True, alias="LOG_DIAGNOSE")
 
 
     @property
@@ -171,3 +178,35 @@ class Settings(BaseSettings):
     def version(self) -> str:
         """Get version."""
         return self.app_version
+
+    @property
+    def log_profile(self):
+        """logging profile setup based on environment
+
+        habit logging pada prod dan dev sangat berbeda
+        dengan ada nya profile , auto switch nya akan sangat nyaman sekali
+        """
+        if self.is_production:
+            return {
+                "log_level": "INFO",
+                "log_redaction": True,
+                "log_redaction_mode": "hash",
+                "log_sink_stdout": False,
+                "log_sink_stderr": True,
+                "log_sink_file": "logs/app.log",
+                "log_serialization": True,
+                "log_enqueue": True,
+                "log_diagnose": False,
+            }
+        # Default development settings
+        return {
+            "log_level": "DEBUG",
+            "log_redaction": True,
+            "log_redaction_mode": "hash",
+            "log_sink_stdout": True,
+            "log_sink_stderr": True,
+            "log_sink_file": None,
+            "log_serialization": True,
+            "log_enqueue": True,
+            "log_diagnose": True,
+        }
