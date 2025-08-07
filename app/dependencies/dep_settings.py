@@ -9,6 +9,7 @@ from typing import Annotated
 
 from app.core.settings import (
     AppConfig,
+    LogSettings,
     PathConfig,
     SecurityConfig,
     Settings,
@@ -50,9 +51,20 @@ def get_path_config() -> PathConfig:
     settings: Settings = get_settings()
     return settings.data_paths
 
+def get_log_settings() -> LogSettings:
+    """Returns log settings configuration from settings."""
+    settings: Settings = get_settings()
+    return LogSettings(
+        log_level=settings.log_level,
+        log_redaction=settings.log_redaction,
+        log_redaction_mode=settings.log_redaction_mode,
+        log_sink_stdout=settings.log_sink_stdout,
+        log_sink_stderr=settings.log_sink_stderr,
+    )
 
 # FastAPI Dependencies
 AppConfigDep = Annotated[AppConfig, Depends(get_app_config)]
 SecurityConfigDep = Annotated[SecurityConfig, Depends(get_security_config)]
 PathConfigDep = Annotated[PathConfig, Depends(get_path_config)]
+LogSettingsDep = Annotated[LogSettings, Depends(get_log_settings)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]

@@ -48,6 +48,15 @@ class PathConfig(BaseModel):
     data: str
     keys: str
 
+class LogSettings(BaseModel):
+    """Log settings configuration."""
+
+    log_level: str
+    log_redaction: bool
+    log_redaction_mode: str
+    log_sink_stdout: bool
+    log_sink_stderr: bool
+
 
 class Settings(BaseSettings):
     """Application settings with nested configuration."""
@@ -81,6 +90,13 @@ class Settings(BaseSettings):
 
     path_data: str = Field(default="secrets/data", alias="PATH_DATA")
     path_keys: str = Field(default="secrets/keys", alias="PATH_KEYS")
+
+    # Log Settings
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    log_redaction: bool = Field(default=True, alias="LOG_REDACTION")
+    log_redaction_mode: str = Field(default="hash", alias="LOG_REDACTION_MODE")
+    log_sink_stdout: bool = Field(default=True, alias="LOG_SINK_STDOUT")
+    log_sink_stderr: bool = Field(default=True, alias="LOG_SINK_STDERR")
 
     @property
     def app(self) -> AppConfig:

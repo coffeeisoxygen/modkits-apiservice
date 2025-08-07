@@ -104,7 +104,7 @@ def exception_format(record: Any) -> str:
 #         env_prefix = "LOG_"
 
 def setup_loguru(
-    level: Level = "DEBUG",
+    level: str = "DEBUG",
     redaction: bool = True,
     redaction_mode: str = "hash",
     sink_stdout: bool = True,
@@ -127,7 +127,7 @@ def setup_loguru(
 
     if sink_stderr:
         logger.add(
-            sys.stderr,
+            sink=sys.stderr,
             level="ERROR",
             format=exception_format,
             backtrace=True,
@@ -151,7 +151,7 @@ def setup_loguru(
             )
 
     logging.basicConfig(handlers=[InterceptHandler()], level=0)
-
+    patch_warnings_to_loguru()
 # Contoh penggunaan pydantic-settings:
 # settings = LogSettings()  # otomatis baca dari .env
 # setup_loguru(
