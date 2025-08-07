@@ -21,15 +21,7 @@ app = FastAPI(
     lifespan=app_lifespan,
 )
 
-@app.on_event("startup")
-async def startup_event():
-    """Log application startup."""
-    logger.info("🚀 FastAPI application starting up")
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Log application shutdown."""
-    logger.info("🛑 FastAPI application shutting down")
 
 @app.middleware("http")
 async def logging_middleware(request: Request, call_next: Callable):
