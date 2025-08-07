@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+
 class EnvironmentEnum(StrEnum):
     """Environment types."""
 
@@ -56,10 +57,11 @@ class LogSettings(BaseModel):
     log_redaction_mode: str
     log_sink_stdout: bool
     log_sink_stderr: bool
-    log_sink_file: str
+    log_sink_file: str | None = None  # Make optional with None default
     log_serialization: bool
     log_enqueue: bool
     log_diagnose: bool
+    log_format: str | None = None # Optional
 
     @field_validator("log_level")
     @classmethod
@@ -120,7 +122,7 @@ class Settings(BaseSettings):
     log_serialization: bool = Field(default=True, alias="LOG_SERIALIZATION")
     log_enqueue: bool = Field(default=True, alias="LOG_ENQUEUE")
     log_diagnose: bool = Field(default=True, alias="LOG_DIAGNOSE")
-
+    log_format: str | None = Field(default=None, alias="LOG_FORMAT")
 
     @property
     def app(self) -> AppConfig:
@@ -197,6 +199,7 @@ class Settings(BaseSettings):
                 "log_serialization": True,
                 "log_enqueue": True,
                 "log_diagnose": False,
+                "log_format": ""
             }
         # Default development settings
         return {
@@ -209,4 +212,5 @@ class Settings(BaseSettings):
             "log_serialization": True,
             "log_enqueue": True,
             "log_diagnose": True,
+            "log_format": "",
         }

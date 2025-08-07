@@ -102,6 +102,9 @@ def get_log_settings(
         profile["log_enqueue"] = log_enqueue
     if log_diagnose is not None:
         profile["log_diagnose"] = log_diagnose
+    if "log_format" not in profile or profile["log_format"] is None:
+        # If no format provided, use default from settings
+        profile["log_format"] = settings.log_format or None
 
     return LogSettings(**profile)
 

@@ -39,6 +39,12 @@ SENSITIVE_KEYWORDS = [
     "private_key", "public_key", "certificate", "cert"
 ]
 
+FORMAT_PRODUCTION = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan> | <level>{message}</level> | <cyan>{extra}</cyan>"
+
+FORMAT_DEVMODE="<level>{level.name}</level>: <magenta>{name}:{function}:{line}</magenta> | {message} | {extra}"
+
+FORMAT_DEVMODE_EXCEPTION="<level>{level.name}</level>: <magenta>{module}:{name}:{function}:{line}>{process}</magenta> | {message} | {extra} | <red>{exception}</red>"
+
 def hash_value(value: str) -> str:
     """Generate SHA256 hash for sensitive values."""
     return f"SHA256:{hashlib.sha256(value.encode()).hexdigest()[:16]}..."
@@ -163,7 +169,7 @@ def setup_loguru(
     serialize: bool = False, # this goes to sys.stdout
     enqueue: bool = True, # this goes to sys.stderr
     diagnose: bool = False, # rgu
-
+    log_format: str | None = None,  # <-- add log_format param for override
     ) -> None:
     """Setup loguru logger with safe default configurations."""
     logger.remove()  # Remove the default logger
@@ -171,11 +177,17 @@ def setup_loguru(
     if not sink_stdout and not sink_stderr:
         raise RuntimeError("At least one of sink_stdout or sink_stderr must be True for logger setup.")
 
+    # Determine formatter for each sink
+    # If log_format is None or empty, use default formatter for each sink
+    stdout_format = FORMAT_DEVMODE if not log_format else log_format
+    stderr_format = FORMAT_DEVMODE_EXCEPTION if not log_format else log_format
+    file_format = FORMAT_PRODUCTION if not log_format else log_format
+
     if sink_stdout:
         logger.add(
             sink=sys.stdout,
             level=level,
-            format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
+            format=stdout_format,
             backtrace=True,
             diagnose=diagnose,
             serialize=False,
@@ -186,7 +198,7 @@ def setup_loguru(
         logger.add(
             sink=sys.stderr,
             level="ERROR",
-            format=exception_format,
+            format=stderr_format,
             backtrace=True,
             diagnose=diagnose,
             serialize=False,
@@ -201,7 +213,7 @@ def setup_loguru(
         logger.add(
             sink=sink_file,
             level=level,
-            format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
+            format=file_format,
             rotation=rotator.should_rotate,
             opener=opener,
             compression="zip",
@@ -211,6 +223,7 @@ def setup_loguru(
             mode="a",
             backtrace=True,
             diagnose=False,
+            colorize=False
         )
 
     if redaction:
@@ -252,9 +265,5 @@ def simple_endpoint_logger(endpoint_name: str | None = None) -> Callable:
             return result
         return wrapper
     return decorator
-
-# ===========================================================================
-# ALIASES & UTILITIES
-# ===========================================================================
 
 endpoint_logger = simple_endpoint_logger
