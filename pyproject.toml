@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi[all]>=0.116.1",
     "loguru>=0.7.3",
+    "stackprinter>=0.2.12",
     "watchdog>=6.0.0",
 ]
 
