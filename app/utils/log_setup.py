@@ -10,10 +10,10 @@ import warnings
 from collections.abc import Callable
 from typing import Any, Literal
 import re
+from pathlib import Path
 
 import stackprinter
 from loguru import logger
-
 Level = Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
 
 
@@ -192,7 +192,12 @@ def setup_loguru(
             serialize=False,
             enqueue=True,  # Enqueue is True for stderr to handle high volume logs
         )
+
     if sink_file:
+        # Ensure parent directory exists
+        file_path = Path(sink_file)
+        if not file_path.parent.exists():
+            file_path.parent.mkdir(parents=True, exist_ok=True)
         logger.add(
             sink=sink_file,
             level=level,

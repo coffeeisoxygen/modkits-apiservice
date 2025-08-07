@@ -5,27 +5,20 @@ import uuid
 from collections.abc import Callable
 
 from fastapi import FastAPI, Request
-from app.utils.log_setup import setup_loguru, logger, simple_endpoint_logger
-from app.dependencies.dep_settings import AppConfig, AppConfigDep, LogSettingsDep, get_log_settings
+from app.core.app_lifespan import app_lifespan
+from app.utils.log_setup import logger, simple_endpoint_logger
+from app.dependencies.dep_settings import AppConfig, AppConfigDep
 from app.dependencies.dep_context import (
     RequestIdDep, ClientIpDep, UserAgentDep, PathDep, MethodDep,
     request_id_ctx, client_ip_ctx, user_agent_ctx, path_ctx, method_ctx
 )
 
-# Initialize and configure logging
-log_settings = get_log_settings()
-setup_loguru(
-    level=log_settings.log_level,
-    redaction=log_settings.log_redaction,
-    redaction_mode=log_settings.log_redaction_mode,
-    sink_stdout=log_settings.log_sink_stdout,
-    sink_stderr=log_settings.log_sink_stderr,
-)
 
 app = FastAPI(
     title="Modkits API Service",
     version="1.0.0",
-    description="API service for Modkits, providing essential functionalities."
+    description="API service for Modkits, providing essential functionalities.",
+    lifespan=app_lifespan,
 )
 
 @app.on_event("startup")
