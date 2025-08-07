@@ -92,16 +92,6 @@ def exception_format(record: Any) -> str:
         return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n{extra[stack]}\n"
     return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n"
 
-# Optional: Integrasi dengan pydantic-settings
-# from pydantic_settings import BaseSettings
-# class LogSettings(BaseSettings):
-#     log_level: str = "DEBUG"
-#     log_redaction: bool = True
-#     log_redaction_mode: str = "hash"
-#     log_sink_stdout: bool = True
-#     log_sink_stderr: bool = True
-#     class Config:
-#         env_prefix = "LOG_"
 
 def setup_loguru(
     level: str = "DEBUG",
