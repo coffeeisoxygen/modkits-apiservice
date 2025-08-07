@@ -98,13 +98,21 @@ def setup_loguru(
     redaction: bool = True,
     redaction_mode: str = "hash",
     sink_stdout: bool = True,
-    sink_stderr: bool = True
-    ) -> None:
+    sink_stderr: bool = True,
+    sink_file: str | None = None,
+    rotation: str = "1 day",
+    retention: str = "7 days",
+    compression: str = "zip",
+    serialize: bool = False,
+    enqueue: bool = True,
+    encoding: str = "utf8",
+    mode: str = "a",
+) -> None:
     """Setup loguru logger with safe default configurations."""
-    logger.remove()  # Remove the default logger
+    logger.remove()
 
-    if not sink_stdout and not sink_stderr:
-        raise RuntimeError("At least one of sink_stdout or sink_stderr must be True for logger setup.")
+    if not sink_stdout and not sink_stderr and not sink_file:
+        raise RuntimeError("At least one sink must be enabled for logger setup.")
 
     if sink_stdout:
         logger.add(
@@ -113,6 +121,8 @@ def setup_loguru(
             format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
             backtrace=True,
             diagnose=True,
+            enqueue=enqueue,
+            colorize=True,
         )
 
     if sink_stderr:
@@ -122,15 +132,31 @@ def setup_loguru(
             format=exception_format,
             backtrace=True,
             diagnose=True,
+            enqueue=enqueue,
+            colorize=True,
+        )
+
+    if sink_file:
+        logger.add(
+            sink=sink_file,
+            level=level,
+            format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
+            rotation=rotation,
+            retention=retention,
+            compression=compression,
+            serialize=serialize,
+            enqueue=enqueue,
+            encoding=encoding,
+            mode=mode,
+            backtrace=True,
+            diagnose=True,
         )
 
     if redaction:
         logger.configure(patcher=sensitive_data_patcher)
         logger.info(f"🛡️ Sensitive data redaction enabled (mode: {redaction_mode})")
 
-    # Intercept standard logging messages and send to loguru
     class InterceptHandler(logging.Handler):
-        """Intercepts standard logging messages and sends them to loguru."""
         def emit(self, record: Any) -> None:
             try:
                 level = logger.level(record.levelname).name
