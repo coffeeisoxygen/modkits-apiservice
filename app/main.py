@@ -13,7 +13,7 @@ from app.dependencies.dep_context import (
 )
 
 # Initialize and configure logging
-setup_loguru(redaction=True, redaction_mode="hash")
+setup_loguru(level="INFO", redaction=True, redaction_mode="hash")
 
 app = FastAPI(
     title="Modkits API Service",
@@ -53,12 +53,12 @@ async def logging_middleware(request: Request, call_next: Callable):
         path=path,
         method=method,
     ):
-        logger.info(f"Request: {request.method} {request.url.path}")
+        logger.debug(f"Request: {request.method} {request.url.path}")
         start_time = time.time()
         try:
             response = await call_next(request)
             execution_time = time.time() - start_time
-            logger.info(
+            logger.debug(
                 f"Response: {response.status_code} | "
                 f"Duration: {execution_time:.4f}s"
             )

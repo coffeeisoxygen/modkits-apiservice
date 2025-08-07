@@ -7,15 +7,19 @@ import os
 import sys
 import warnings
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 import re
 
 import stackprinter
 from loguru import logger
 
 # ===========================================================================
+# LOGURU LEVEL FOR EASIET TO PASS AS FUNCTION
+Level = Literal["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
+
+# ===================================================================
 # SENSITIVE DATA REDACTION
-# ===========================================================================
+# ===================================================================
 
 SENSITIVE_PATTERNS = {
     "password": r"(?i)(password|pwd|pass)\s*[:=]\s*['\"]?([^'\"\s,}]+)",
@@ -88,14 +92,14 @@ def exception_format(record: Any) -> str:
         return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n{extra[stack]}\n"
     return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n"
 
-def setup_loguru(redaction: bool = True, redaction_mode: str = "hash") -> None:
+def setup_loguru(level: Level = "DEBUG", redaction: bool = True, redaction_mode: str = "hash") -> None:
     """Setup loguru logger with safe default configurations."""
     logger.remove()  # Remove the default logger
 
     # Main handler for stdout
     logger.add(
         sink=sys.stdout,
-        level="DEBUG",
+        level=level,
         format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
         backtrace=True,
         diagnose=True,
