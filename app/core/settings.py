@@ -8,7 +8,7 @@ untuk yang lain bisa diaktifkan jika diperlukan.
 from enum import StrEnum
 
 from app._version import __version__ as version
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -57,6 +57,21 @@ class LogSettings(BaseModel):
     log_sink_stdout: bool
     log_sink_stderr: bool
 
+    @field_validator("log_level")
+    @classmethod
+    def validate_log_level(cls, value: str) -> str:
+        """Validate log level."""
+        valid_levels = ["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
+        if value not in valid_levels:
+            raise ValueError(f"Invalid log level: {value}. Must be one of: {valid_levels}")
+        return value
+
+    @model_validator(mode="after")
+    def validate_log_settings(self) -> "LogSettings":
+        """Validate log settings after model creation."""
+        if not self.log_sink_stdout and not self.log_sink_stderr:
+            raise ValueError("At least one log sink must be enabled (stdout or stderr).")
+        return self
 
 class Settings(BaseSettings):
     """Application settings with nested configuration."""
@@ -97,6 +112,8 @@ class Settings(BaseSettings):
     log_redaction_mode: str = Field(default="hash", alias="LOG_REDACTION_MODE")
     log_sink_stdout: bool = Field(default=True, alias="LOG_SINK_STDOUT")
     log_sink_stderr: bool = Field(default=True, alias="LOG_SINK_STDERR")
+
+
 
     @property
     def app(self) -> AppConfig:
