@@ -81,6 +81,17 @@ def sensitive_data_patcher(record):
     redaction_mode = record.get("extra", {}).get("redaction_mode", "hash")
     record["message"] = redact_message(record["message"], redaction_mode)
 
+def patch_warnings_to_loguru():
+    """Redirects Python warnings to loguru logger."""
+    showwarning_ = warnings.showwarning
+    def showwarning(message, *args, **kwargs):
+        logger.opt(depth=2).warning(message)
+        showwarning_(message, *args, **kwargs)
+    warnings.showwarning = showwarning
+
+def opener(file: str, flags: int) -> int:
+    """Open a file with read/write by owner only permissions."""
+    return os.open(file, flags, 0o600)
 # ===========================================================================
 # LOGURU SETUP
 # ===========================================================================
@@ -167,9 +178,7 @@ def simple_endpoint_logger(endpoint_name: str | None = None) -> Callable:
 
 endpoint_logger = simple_endpoint_logger
 
-def opener(file: str, flags: int) -> int:
-    """Open a file with read/write by owner only permissions."""
-    return os.open(file, flags, 0o600)
+
 
 class StreamToLogger:
     """Redirects stdout/stderr to loguru logger."""
@@ -180,11 +189,3 @@ class StreamToLogger:
             logger.opt(depth=1).log(self._level, line.rstrip())
     def flush(self):
         pass
-
-def patch_warnings_to_loguru():
-    """Redirects Python warnings to loguru logger."""
-    showwarning_ = warnings.showwarning
-    def showwarning(message, *args, **kwargs):
-        logger.opt(depth=2).warning(message)
-        showwarning_(message, *args, **kwargs)
-    warnings.showwarning = showwarning
