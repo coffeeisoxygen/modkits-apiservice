@@ -51,6 +51,7 @@ def get_path_config() -> PathConfig:
     settings: Settings = get_settings()
     return settings.data_paths
 
+
 def get_log_settings(
     log_level: str | None = None,
     log_redaction: bool | None = None,
@@ -107,6 +108,7 @@ def get_log_settings(
         profile["log_format"] = settings.log_format or None
 
     return LogSettings(**profile)
+
 
 # FastAPI Dependencies
 AppConfigDep = Annotated[AppConfig, Depends(get_app_config)]

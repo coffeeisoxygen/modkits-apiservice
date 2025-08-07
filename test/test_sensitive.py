@@ -3,10 +3,12 @@
 
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "app"))
 
 from app.utils.log_setup import setup_loguru, enable_sensitive_logging
 from loguru import logger
+
 
 def test_sensitive_data_redaction():
     """Test sensitive data redaction functionality dengan berbagai mode."""
@@ -32,9 +34,9 @@ def test_sensitive_data_redaction():
     ]
 
     for mode in modes:
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"🛡️  TESTING REDACTION MODE: {mode.upper()}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         # Setup fresh logger untuk setiap mode
         setup_loguru()
@@ -47,10 +49,11 @@ def test_sensitive_data_redaction():
 
         print(f"\n✅ Mode '{mode}' test completed!")
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("🎉 ALL REDACTION MODES TESTED!")
     print("📊 Check the logs above to compare different redaction strategies")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
+
 
 if __name__ == "__main__":
     test_sensitive_data_redaction()

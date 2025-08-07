@@ -2,15 +2,18 @@
 
 import time
 
-from fastapi import FastAPI
 from app.core.app_lifespan import app_lifespan
 from app.core.app_middleware import LoggingMiddleware
-from app.utils.log_setup import logger, simple_endpoint_logger
-from app.dependencies.dep_settings import AppConfig, AppConfigDep
 from app.dependencies.dep_context import (
-    RequestIdDep, ClientIpDep, UserAgentDep, PathDep, MethodDep
+    ClientIpDep,
+    MethodDep,
+    PathDep,
+    RequestIdDep,
+    UserAgentDep,
 )
-
+from app.dependencies.dep_settings import AppConfig, AppConfigDep
+from app.utils.log_setup import logger, simple_endpoint_logger
+from fastapi import FastAPI
 
 app = FastAPI(
     title="Modkits API Service",
@@ -22,15 +25,12 @@ app = FastAPI(
 app.add_middleware(LoggingMiddleware)
 
 
-
 @app.get("/", tags=["General"])
 @simple_endpoint_logger("root")
 async def read_root():
     """Root endpoint providing a welcome message."""
-    return {
-        "message": "Welcome to Modkits API Service!",
-        "status": "ok"
-    }
+    return {"message": "Welcome to Modkits API Service!", "status": "ok"}
+
 
 @app.get("/health", tags=["General"])
 @simple_endpoint_logger("health_check")
@@ -39,14 +39,16 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "modkits-apiservice",
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
+
 
 @app.get("/info", tags=["Application"])
 @simple_endpoint_logger("app_info")
 async def get_app_info(app_config: AppConfigDep) -> AppConfig:
     """Get application configuration information."""
     return app_config
+
 
 @app.get("/test-sensitive", tags=["Testing"])
 @simple_endpoint_logger("test_sensitive")
@@ -59,12 +61,15 @@ async def test_sensitive_data():
     logger.info("Phone: +628123456789")
     logger.info("Credit Card: 4532-1234-5678-9012")
     logger.info("Token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9")
-    logger.info("Secret key in JSON: {'secret': 'top-secret-data', 'public': 'visible'}")
+    logger.info(
+        "Secret key in JSON: {'secret': 'top-secret-data', 'public': 'visible'}"
+    )
 
     return {
         "status": "test completed",
-        "message": "Check logs to see sensitive data redaction in action"
+        "message": "Check logs to see sensitive data redaction in action",
     }
+
 
 @app.get("/whoami", tags=["Debug"])
 @simple_endpoint_logger("whoami")

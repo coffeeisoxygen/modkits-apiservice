@@ -4,13 +4,16 @@ import time
 import uuid
 from collections.abc import Callable
 
-from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
-
 from app.dependencies.dep_context import (
-    request_id_ctx, client_ip_ctx, user_agent_ctx, path_ctx, method_ctx
+    client_ip_ctx,
+    method_ctx,
+    path_ctx,
+    request_id_ctx,
+    user_agent_ctx,
 )
 from app.utils.log_setup import logger
+from fastapi import Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class LoggingMiddleware(BaseHTTPMiddleware):
@@ -65,9 +68,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
                 # Add request ID to response headers
                 response.headers["X-Request-ID"] = request_id
-                return response
-
-            except Exception as e:
+            except Exception:
                 # Log exception with full context
                 logger.exception(f"Unhandled exception during {method} {path}")
                 execution_time = time.time() - start_time
@@ -75,3 +76,5 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
                 # Re-raise for FastAPI exception handlers
                 raise
+            else:
+                return response

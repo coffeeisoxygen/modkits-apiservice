@@ -12,7 +12,6 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-
 class EnvironmentEnum(StrEnum):
     """Environment types."""
 
@@ -49,6 +48,7 @@ class PathConfig(BaseModel):
     data: str
     keys: str
 
+
 class LogSettings(BaseModel):
     """Log settings configuration."""
 
@@ -61,23 +61,36 @@ class LogSettings(BaseModel):
     log_serialization: bool
     log_enqueue: bool
     log_diagnose: bool
-    log_format: str | None = None # Optional
+    log_format: str | None = None  # Optional
 
     @field_validator("log_level")
     @classmethod
     def validate_log_level(cls, value: str) -> str:
         """Validate log level."""
-        valid_levels = ["TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL"]
+        valid_levels = [
+            "TRACE",
+            "DEBUG",
+            "INFO",
+            "SUCCESS",
+            "WARNING",
+            "ERROR",
+            "CRITICAL",
+        ]
         if value not in valid_levels:
-            raise ValueError(f"Invalid log level: {value}. Must be one of: {valid_levels}")
+            raise ValueError(
+                f"Invalid log level: {value}. Must be one of: {valid_levels}"
+            )
         return value
 
     @model_validator(mode="after")
     def validate_log_settings(self) -> "LogSettings":
         """Validate log settings after model creation."""
         if not self.log_sink_stdout and not self.log_sink_stderr:
-            raise ValueError("At least one log sink must be enabled (stdout or stderr).")
+            raise ValueError(
+                "At least one log sink must be enabled (stdout or stderr)."
+            )
         return self
+
 
 class Settings(BaseSettings):
     """Application settings with nested configuration."""
@@ -199,7 +212,7 @@ class Settings(BaseSettings):
                 "log_serialization": True,
                 "log_enqueue": True,
                 "log_diagnose": False,
-                "log_format": ""
+                "log_format": "",
             }
         # Default development settings
         return {

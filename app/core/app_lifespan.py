@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from app.dependencies.dep_settings import get_log_settings
 from app.utils.log_setup import setup_loguru, logger
 
+
 @asynccontextmanager
 async def app_lifespan(app: FastAPI):
     """Lifespan context for FastAPI app: setup logging and log events."""

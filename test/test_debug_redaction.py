@@ -3,10 +3,12 @@
 
 import sys
 import os
+
 sys.path.append(os.path.join(os.path.dirname(__file__), "app"))
 
 from app.utils.log_setup import setup_loguru, enable_sensitive_logging
 from loguru import logger
+
 
 def test_debug_redaction():
     """Test dengan debug untuk melihat cara kerja redaction."""
@@ -30,7 +32,11 @@ def test_debug_redaction():
 
         # Pattern untuk email
         email_pattern = r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"
-        message = re.sub(email_pattern, lambda m: f"{m.group(0)[:3]}***@{m.group(0).split('@')[1]}", message)
+        message = re.sub(
+            email_pattern,
+            lambda m: f"{m.group(0)[:3]}***@{m.group(0).split('@')[1]}",
+            message,
+        )
 
         return message
 
@@ -55,6 +61,7 @@ def test_debug_redaction():
     print("\n📊 Testing with Loguru:")
     for i, test_case in enumerate(test_cases, 1):
         logger.info(f"Test {i}: {test_case}")
+
 
 if __name__ == "__main__":
     test_debug_redaction()

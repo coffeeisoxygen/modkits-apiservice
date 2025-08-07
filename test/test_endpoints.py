@@ -6,6 +6,7 @@ import aiohttp
 import time
 import json
 
+
 async def test_endpoints():
     """Test endpoints dengan sensitive data."""
 
@@ -16,7 +17,7 @@ async def test_endpoints():
         {
             "endpoint": "/test-sensitive",
             "method": "GET",
-            "description": "Test sensitive data endpoint"
+            "description": "Test sensitive data endpoint",
         },
         {
             "endpoint": "/login",
@@ -24,15 +25,11 @@ async def test_endpoints():
             "data": {
                 "email": "admin@company.com",
                 "password": "super_secret_password_123",
-                "token": "sk-1234567890abcdef1234567890"
+                "token": "sk-1234567890abcdef1234567890",
             },
-            "description": "Test login with sensitive data"
+            "description": "Test login with sensitive data",
         },
-        {
-            "endpoint": "/info",
-            "method": "GET",
-            "description": "Test normal endpoint"
-        }
+        {"endpoint": "/info", "method": "GET", "description": "Test normal endpoint"},
     ]
 
     print("🌐 Testing FastAPI endpoints...")
@@ -45,14 +42,16 @@ async def test_endpoints():
                 if test_case["method"] == "POST":
                     async with session.post(
                         f"{base_url}{test_case['endpoint']}",
-                        json=test_case.get("data", {})
+                        json=test_case.get("data", {}),
                     ) as response:
                         result = await response.text()
                         print(f"   Status: {response.status}")
                         print(f"   Response: {result[:100]}...")
 
                 else:  # GET
-                    async with session.get(f"{base_url}{test_case['endpoint']}") as response:
+                    async with session.get(
+                        f"{base_url}{test_case['endpoint']}"
+                    ) as response:
                         result = await response.text()
                         print(f"   Status: {response.status}")
                         print(f"   Response: {result[:100]}...")
@@ -62,6 +61,7 @@ async def test_endpoints():
 
             # Small delay between requests
             await asyncio.sleep(0.5)
+
 
 def main():
     """Main function."""
@@ -81,6 +81,7 @@ def main():
 
     print("\n✅ Test completed!")
     print("📊 Check server logs untuk melihat sensitive data redaction!")
+
 
 if __name__ == "__main__":
     main()
