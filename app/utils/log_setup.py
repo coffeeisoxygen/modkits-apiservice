@@ -158,6 +158,17 @@ def exception_format(record: Any) -> str:
         return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n{extra[stack]}\n"
     return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n"
 
+class InterceptHandler(logging.Handler):
+    """Intercepts standard logging messages and sends them to loguru."""
+    def emit(self, record: Any) -> None:
+        try:
+            level = logger.level(record.levelname).name
+        except ValueError:
+            level = record.levelno
+        logger.opt(depth=6, exception=record.exc_info).log(
+            level, record.getMessage()
+        )
+
 # THE SETUP Goes Here
 def setup_loguru(
     level: str = "DEBUG", #GLOBAL
@@ -231,19 +242,9 @@ def setup_loguru(
         logger.info(f"🛡️ Sensitive data redaction enabled (mode: {redaction_mode})")
 
     # Intercept standard logging messages and send to loguru
-    class InterceptHandler(logging.Handler):
-        """Intercepts standard logging messages and sends them to loguru."""
-        def emit(self, record: Any) -> None:
-            try:
-                level = logger.level(record.levelname).name
-            except ValueError:
-                level = record.levelno
-            logger.opt(depth=6, exception=record.exc_info).log(
-                level, record.getMessage()
-            )
-
     logging.basicConfig(handlers=[InterceptHandler()], level=0)
     patch_warnings_to_loguru()
+    configure_uvicorn_logging()
     sys.stdout = StreamToLogger("INFO")
     sys.stderr = StreamToLogger("ERROR")
 
@@ -267,3 +268,29 @@ def simple_endpoint_logger(endpoint_name: str | None = None) -> Callable:
     return decorator
 
 endpoint_logger = simple_endpoint_logger
+# Tambahkan fungsi ini di bawah patch_warnings_to_loguru()
+def configure_uvicorn_logging():
+    """Configure Uvicorn logging to use loguru.
+
+    This function should be called before Uvicorn starts to ensure
+    all Uvicorn logs are intercepted and formatted consistently.
+    """
+    # Intercept Uvicorn loggers
+    uvicorn_loggers = (
+        "uvicorn",
+        "uvicorn.error",
+        "uvicorn.access",
+        "uvicorn.asgi",
+    )
+
+    # Replace all handlers with InterceptHandler
+    for logger_name in uvicorn_loggers:
+        uvicorn_logger = logging.getLogger(logger_name)
+        uvicorn_logger.handlers = [InterceptHandler()]
+        uvicorn_logger.propagate = False
+
+    # Set log level for uvicorn.access
+    access_logger = logging.getLogger("uvicorn.access")
+    access_logger.setLevel(logging.INFO)
+
+    logger.debug("🔄 Uvicorn logging configured to use loguru")
