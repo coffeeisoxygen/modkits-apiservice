@@ -1,229 +1,107 @@
-"""setup loguru.
+"""setup loguru - Simple & Effective Endpoint Logging."""
 
-1. logger.bind()
-Gunakan bind() ketika Anda ingin melampirkan data ekstra yang spesifik untuk satu baris log tertentu. Ini sangat berguna untuk mencatat detail yang hanya relevan pada momen itu.
-"example":
-    >>> def kirim_notifikasi_email(user_id):
-    ...     logger.bind(user_id=user_id).info(
-    ...         "Email notifikasi berhasil dikirim."
-    ...     )
-2. logger.contextualize()
-Gunakan contextualize() ketika Anda ingin menambahkan data ekstra yang konsisten di seluruh blok kode tertentu. Data ini akan dilampirkan ke semua pesan log di dalam blok tersebut secara otomatis. Ini ideal untuk melacak alur eksekusi, seperti sebuah permintaan HTTP atau tugas latar belakang.
-"example":
-    >>> def proses_data(data):
-    ...     logger.info("Memulai proses data.")
-    ...     logger.debug(f"Data: {data}")
-    ...     # ... kode lainnya
-    # Menjalankan fungsi di dalam konteks dengan task_id
-    >>> task_id = "task-alpha"
-    ... with logger.contextualize(task_id=task_id):
-        ... logger.info("Memulai alur pekerjaan.")
-        ... proses_data([1, 2, 3])
-        ... logger.info("Alur pekerjaan selesai.")
-    # Output:
-    # ... Memulai alur pekerjaan. {'task_id': 'task-alpha'}
-    # ... Memulai proses data. {'task_id': 'task-alpha'}
-    # ... Data: [1, 2, 3] {'task_id': 'task-alpha'}
-    # ... Alur pekerjaan selesai. {'task_id': 'task-alpha'}
-3.@logger.catch()
-Gunakan @logger.catch atau with logger.catch() untuk menangani dan mencatat pengecualian (exceptions) secara otomatis tanpa perlu blok try...except manual. Ini membuat kode Anda lebih bersih dan memastikan kesalahan tidak terlewatkan.
-
-Kapan Menggunakannya:
-
-Melindungi fungsi atau blok kode yang rentan terhadap kesalahan (misalnya, pembagian dengan nol, akses data yang tidak ada).
-
-Memastikan program tidak berhenti total karena kesalahan yang tidak tertangani.
-
-Saat Anda ingin mencatat jejak kesalahan (traceback)
-"example":
-    >>> @logger.catch()
-    ... def bagi(a, b):
-    ...     return a / b
-    >>> bagi(10, 0)
-    # Output:
-    # ... ZeroDivisionError: division by zero
-    # ... Traceback (most recent call last):
-    # ...   File "script.py", line 1, in <module>
-    # ...     bagi(10, 0)
-    # ...   File "script.py", line 2, in bagi
-    # ...     return a / b
-    # ... ZeroDivisionError: division by zero
-4. logger_wraps()
-Gunakan logger_wraps() untuk mendekorasi fungsi yang ingin Anda lacak masuk dan keluar, serta argumen yang diteruskan. Ini sangat berguna untuk fungsi yang sering dipanggil dan Anda ingin melacak bagaimana mereka digunakan tanpa menambahkan banyak kode logging manual di dalam fungsi itu sendiri.
-"example":
-    >>> @logger_wraps()
-    ... def foo(a, b, c):
-    ...     logger.info("Inside the function")
-    ...     return a * b * c
-    >>> def bar():
-    ...     foo(2, 4, c=8)
-    >>> bar()
-    >>>
-    # Output:
-    # ... DEBUG: Entering 'foo' (args=(2, 4), kwargs={'c': 8})
-    # ... INFO: Inside the function
-4. timeit()
-Gunakan timeit untuk mengukur waktu eksekusi fungsi. Ini berguna untuk mengidentifikasi bottleneck performa dalam kode Anda.
-"example":
-    >>> @timeit
-    ... def slow_function(x):
-    ...     time.sleep(x)
-    ...     return x
-    >>> slow_function(1)
-    # Log: Function 'slow_function' executed in 1.000000 s
-"""
-
-# type: ignore
-# ruff: noqa
 import functools
+import hashlib
 import logging
 import os
 import sys
-import time
-import traceback
 import warnings
 from collections.abc import Callable
-from contextlib import contextmanager
-from itertools import takewhile
 from typing import Any
+import re
 
 import stackprinter
 from loguru import logger
 
+# ===========================================================================
+# SENSITIVE DATA REDACTION
+# ===========================================================================
 
-def logger_wraps(
-    *, entry: bool = True, exit: bool = True, level: str = "DEBUG"
-) -> Callable:
-    """Decorator to log entry and exit of a function.
+SENSITIVE_PATTERNS = {
+    "password": r"(?i)(password|pwd|pass)\s*[:=]\s*['\"]?([^'\"\s,}]+)",
+    "email": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
+    "phone": r"(\+62|0)\d{8,15}",
+    "credit_card": r"\b\d{4}[-\s]?\d{4}[-\s]?\d{4}[-\s]?\d{4}\b",
+    "api_key": r"(?i)(api[_-]?key|secret[_-]?key|access[_-]?token)\s*[:=]\s*['\"]?([a-zA-Z0-9_-]{16,})",
+    "token": r"(?i)(token|jwt|bearer)\s*[:=]?\s*['\"]?([a-zA-Z0-9_.-]{20,})",
+    "secret_in_json": r"(?i)['\"]?(secret|password|token|key)['\"]?\s*:\s*['\"]([^'\"]+)['\"]",
+    "ip_address": r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
+    "ssn": r"\b\d{3}-\d{2}-\d{4}\b",
+    "url_with_token": r"https?://[^\s]*[?&](token|key|secret)=([^&\s]+)",
+    "authorization_header": r"(?i)(authorization|bearer)\s*:\s*['\"]?([^'\"\s,}]+)"
+}
 
-    Args:
-        entry (bool): Log when entering the function.
-        exit (bool): Log when exiting the function.
-        level (str): Logging level to use.
+SENSITIVE_KEYWORDS = [
+    "password", "pwd", "pass", "secret", "token", "key",
+    "api_key", "access_token", "refresh_token", "jwt",
+    "credit_card", "card_number", "cvv", "pin",
+    "ssn", "social_security", "auth", "authorization",
+    "private_key", "public_key", "certificate", "cert"
+]
 
-    Returns:
-        Callable: Decorator for logging.
+def hash_value(value: str) -> str:
+    """Generate SHA256 hash for sensitive values."""
+    return f"SHA256:{hashlib.sha256(value.encode()).hexdigest()[:16]}..."
 
-    Example:
-        >>> @logger_wraps()
-        ... def foo(a, b, c):
-        ...     logger.info("Inside the function")
-        ...     return a * b * c
-        >>> def bar():
-        ...     foo(2, 4, c=8)
-        >>> bar()
-    """
+def redact_message(text: str, redaction_mode: str = "hash") -> str:
+    """Redact sensitive data from a text message."""
+    message = text
+    for pattern_name, pattern in SENSITIVE_PATTERNS.items():
+        # Check if pattern has at least 2 groups, else redact whole match
+        compiled = re.compile(pattern)
+        group_count = compiled.groups
+        if group_count >= 2:
+            if redaction_mode == "hash":
+                message = compiled.sub(lambda m: f"{m.group(1)}: {hash_value(m.group(2))}", message)
+            else:
+                message = compiled.sub(lambda m: f"{m.group(1)}: ********", message)
+        else:
+            # For patterns like email, phone, etc. (no group 2)
+            if redaction_mode == "hash":
+                message = compiled.sub(lambda m: f"[REDACTED:{hash_value(m.group(0))}]", message)
+            else:
+                message = compiled.sub(lambda m: "[REDACTED]", message)
 
-    def wrapper(func: Any):
-        name = func.__name__
+    for keyword in SENSITIVE_KEYWORDS:
+        pattern = rf"(?i){keyword}\s*[:=]\s*['\"]?([^'\"\s,}}]+)"
+        compiled = re.compile(pattern)
+        if redaction_mode == "hash":
+            message = compiled.sub(lambda m: f"{keyword}: {hash_value(m.group(1))}", message)
+        else:
+            message = compiled.sub(f"{keyword}: ********", message)
+    return message
 
-        @functools.wraps(func)
-        def wrapped(*args, **kwargs):
-            logger_ = logger.opt(depth=1)
-            if entry:
-                logger_.log(
-                    level, "Entering '{}' (args={}, kwargs={})", name, args, kwargs
-                )
-            result = func(*args, **kwargs)
-            if exit:
-                logger_.log(level, "Exiting '{}' (result={})", name, result)
-            return result
+def sensitive_data_patcher(record):
+    """Patcher function to redact sensitive data from log records."""
+    # Use redaction_mode from logger extra if available, else default to 'hash'
+    redaction_mode = record.get("extra", {}).get("redaction_mode", "hash")
+    record["message"] = redact_message(record["message"], redaction_mode)
 
-        return wrapped
-
-    return wrapper
-
-
-def timeit(func: Callable) -> Callable:
-    """Decorator to measure execution time of a function.
-
-    Example:
-        >>> @timeit
-        ... def slow_function(x):
-        ...     time.sleep(x)
-        ...     return x
-        >>> slow_function(1)
-        # Log: Function 'slow_function' executed in 1.000000 s
-
-    Args:
-        func (Callable): The function to be decorated.
-
-    Returns:
-        Callable: The wrapped function with timing.
-    """
-
-    @functools.wraps(func)
-    def wrapped(*args, **kwargs):
-        start = time.time()
-        result = func(*args, **kwargs)
-        end = time.time()
-        logger.debug("Function '{}' executed in {:f} s", func.__name__, end - start)
-        return result
-
-    return wrapped
-
+# ===========================================================================
+# LOGURU SETUP
+# ===========================================================================
 
 def exception_format(record: Any) -> str:
-    """Custom format for exceptions using stackprinter."""
-    format_ = "{time} {message}\n"
+    """Custom format for exceptions with stackprinter."""
     if record["exception"] is not None:
         record["extra"]["stack"] = stackprinter.format(record["exception"])
-        format_ += "{extra[stack]}\n"
-    return format_
+        return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n{extra[stack]}\n"
+    return "<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>\n"
 
+def setup_loguru(redaction: bool = True, redaction_mode: str = "hash") -> None:
+    """Setup loguru logger with safe default configurations."""
+    logger.remove()  # Remove the default logger
 
-def add_traceback(record: Any):
-    """Add current stacktrace to log record if 'with_traceback' is set in extra."""
-    extra = record["extra"]
-    if extra.get("with_traceback", False):
-        extra["traceback"] = "\n" + "".join(traceback.format_stack())
-    else:
-        extra["traceback"] = ""
-
-
-def tracing_formatter(record: Any) -> str:
-    """Custom formatter to prefix message with full call stack."""
-    frames = takewhile(
-        lambda f: "/loguru/" not in f.filename, traceback.extract_stack()
-    )
-    stack = " > ".join(f"{f.filename}:{f.name}:{f.lineno}" for f in frames)
-    record["extra"]["stack"] = stack
-    return f"{record['level'].name} | {record['extra']['stack']} - {record['message']}\n{record['exception'] or ''}"
-
-
-def patch_logger_with_traceback():
-    """Patch the global logger to allow displaying stacktrace in log messages.
-
-    Usage:
-        patch_logger_with_traceback()
-        logger.info("No traceback")
-        logger.bind(with_traceback=True).info("With traceback")
-    """
-    global logger
-    logger = logger.patch(add_traceback)
-    logger.remove()
+    # Main handler for stdout
     logger.add(
-        sys.stderr,
-        format="{time} - {message}{extra[traceback]}",
+        sink=sys.stdout,
+        level="DEBUG",
+        format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
         backtrace=True,
         diagnose=True,
     )
 
-
-def setup_loguru():
-    """Setup loguru logger."""
-    logger.remove()  # Remove the default logger
-    logger.add(
-        sink=sys.stdout,  # Log to stdout # type: ignore
-        rotation="1 MB",  # Rotate logs when they reach 1 MB
-        retention="7 days",  # Keep logs for 7 days
-        level="DEBUG",  # Set the logging level to DEBUG
-        format="<green>{time}</green> | <level>{level}</level> | <level>{message}</level> | <cyan>{extra}</cyan>",
-        backtrace=True,  # Enable backtrace for exceptions
-        diagnose=True,  # Enable diagnostic information for exceptions
-        opener=opener,
-    )
-    # Tambahkan handler khusus untuk exception (ERROR ke atas)
+    # Special handler for ERROR level with stackprinter
     logger.add(
         sys.stderr,
         level="ERROR",
@@ -232,11 +110,14 @@ def setup_loguru():
         diagnose=True,
     )
 
-    # Intercept standard logging messages and send them to loguru
+    if redaction:
+        logger.configure(patcher=sensitive_data_patcher)
+        logger.info(f"🛡️ Sensitive data redaction enabled (mode: {redaction_mode})")
+
+    # Intercept standard logging messages and send to loguru
     class InterceptHandler(logging.Handler):
         """Intercepts standard logging messages and sends them to loguru."""
-
-        def emit(self, record: Any):
+        def emit(self, record: Any) -> None:
             try:
                 level = logger.level(record.levelname).name
             except ValueError:
@@ -245,162 +126,49 @@ def setup_loguru():
                 level, record.getMessage()
             )
 
-    # Remove existing handlers and add the intercept handler
     logging.basicConfig(handlers=[InterceptHandler()], level=0)
 
+# ===========================================================================
+# DECORATORS & CONTEXT MANAGERS
+# ===========================================================================
+
+def simple_endpoint_logger(endpoint_name: str | None = None) -> Callable:
+    """Decorator to log the start and end of an endpoint function."""
+    def decorator(func: Callable) -> Callable:
+        name = endpoint_name or func.__name__
+        @functools.wraps(func)
+        async def wrapper(*args, **kwargs):
+            logger.info(f"Executing endpoint: '{name}'")
+            result = await func(*args, **kwargs)
+            logger.info(f"Finished endpoint: '{name}'")
+            return result
+        return wrapper
+    return decorator
+
+# ===========================================================================
+# ALIASES & UTILITIES
+# ===========================================================================
+
+endpoint_logger = simple_endpoint_logger
 
 def opener(file: str, flags: int) -> int:
-    """Open a file with the given flags.
-
-    This function is used to customize the file opening behavior for loguru.
-    To set desired permissions on created log files, use the opener argument to pass in a custom opener with permissions octal:
-
-    Args:
-        file (str): The path to the file to open.
-        flags (int): The flags to use when opening the file.
-
-    Returns:
-        int: The file descriptor for the opened file.
-    """
-    return os.open(file, flags, 0o600)  # read/write by owner only
-
+    """Open a file with read/write by owner only permissions."""
+    return os.open(file, flags, 0o600)
 
 class StreamToLogger:
-    """Redirects stdout/stderr to loguru logger.
-
-    Usage:
-        stream = StreamToLogger(level="INFO")
-        with contextlib.redirect_stdout(stream):
-            print("This will be logged by loguru.")
-    """
-
+    """Redirects stdout/stderr to loguru logger."""
     def __init__(self, level: str = "INFO"):
         self._level = level
-
     def write(self, buffer: str):
         for line in buffer.rstrip().splitlines():
             logger.opt(depth=1).log(self._level, line.rstrip())
-
     def flush(self):
         pass
 
-
 def patch_warnings_to_loguru():
-    """Redirects Python warnings to loguru logger.
-
-    Usage:
-        patch_warnings_to_loguru()
-        warnings.warn("This will be logged by loguru.")
-    """
+    """Redirects Python warnings to loguru logger."""
     showwarning_ = warnings.showwarning
-
     def showwarning(message, *args, **kwargs):
         logger.opt(depth=2).warning(message)
         showwarning_(message, *args, **kwargs)
-
     warnings.showwarning = showwarning
-
-
-def bind_request_context(request_id: str, client_ip: str) -> Any:
-    """Bind request context to logger for consistent logging across endpoints.
-
-    Args:
-        request_id (str): Unique request identifier
-        client_ip (str): Client IP address
-
-    Returns:
-        Logger instance with bound context
-
-    Example:
-        >>> log = bind_request_context("req-123", "192.168.1.1")
-        >>> log.info("Processing user data")
-        # Output: ... Processing user data {'request_id': 'req-123', 'client_ip': '192.168.1.1'}
-    """
-    return logger.bind(request_id=request_id, client_ip=client_ip)
-
-
-@contextmanager
-def track_endpoint_performance(endpoint_name: str, request_id: str, client_ip: str):
-    """Context manager for tracking endpoint performance with automatic logging.
-
-    Args:
-        endpoint_name (str): Name of the endpoint being tracked
-        request_id (str): Unique request identifier
-        client_ip (str): Client IP address
-
-    Example:
-        >>> with track_endpoint_performance(
-        ...     "get_users", "req-123", "192.168.1.1"
-        ... ):
-        ...     # endpoint logic here
-        ...     return {"users": []}
-        # Output:
-        # ... Entering endpoint 'get_users' {'request_id': 'req-123', 'client_ip': '192.168.1.1'}
-        # ... Exiting endpoint 'get_users' in 0.0234s {'request_id': 'req-123', 'client_ip': '192.168.1.1'}
-    """
-    log = bind_request_context(request_id, client_ip)
-    start_time = time.time()
-
-    log.info(f"Entering endpoint '{endpoint_name}'")
-
-    try:
-        yield log
-    except Exception as e:
-        execution_time = time.time() - start_time
-        log.error(
-            f"Endpoint '{endpoint_name}' failed in {execution_time:.4f}s with error: {str(e)}"
-        )
-        raise
-    else:
-        execution_time = time.time() - start_time
-        log.info(f"Exiting endpoint '{endpoint_name}' in {execution_time:.4f}s")
-
-
-def endpoint_logger(endpoint_name: str | None = None) -> Callable:
-    """Decorator for automatic endpoint logging with performance tracking.
-
-    Args:
-        endpoint_name (str, optional): Custom name for the endpoint.
-                                     If None, uses function name.
-
-    Returns:
-        Callable: Decorator function
-
-    Example:
-        >>> @endpoint_logger("user_management")
-        ... async def get_users(request_id: str, client_ip: str):
-        ...     # endpoint logic
-        ...     return {"users": []}
-    """
-
-    def decorator(func: Callable) -> Callable:
-        name = endpoint_name or func.__name__
-
-        @functools.wraps(func)
-        async def async_wrapper(*args, **kwargs):
-            # Extract request_id and client_ip from kwargs or context
-            request_id = kwargs.get("request_id", "unknown")
-            client_ip = kwargs.get("client_ip", "unknown")
-
-            with track_endpoint_performance(name, request_id, client_ip) as log:
-                # Add logger to kwargs so endpoint can use it
-                kwargs["log"] = log
-                return await func(*args, **kwargs)
-
-        @functools.wraps(func)
-        def sync_wrapper(*args, **kwargs):
-            # Extract request_id and client_ip from kwargs or context
-            request_id = kwargs.get("request_id", "unknown")
-            client_ip = kwargs.get("client_ip", "unknown")
-
-            with track_endpoint_performance(name, request_id, client_ip) as log:
-                # Add logger to kwargs so endpoint can use it
-                kwargs["log"] = log
-                return func(*args, **kwargs)
-
-        # Return appropriate wrapper based on function type
-        if hasattr(func, "__code__") and func.__code__.co_flags & 0x80:  # CO_COROUTINE
-            return async_wrapper
-        return sync_wrapper
-
-    return decorator

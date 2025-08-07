@@ -5,6 +5,7 @@ description = "cuma buat parsing response dari json ke string biasa"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiohttp>=3.12.15",
     "fastapi[all]>=0.116.1",
     "loguru>=0.7.3",
     "stackprinter>=0.2.12",
