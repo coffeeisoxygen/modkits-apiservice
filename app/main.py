@@ -1,16 +1,14 @@
 """Main FastAPI Application."""
 
 import time
-import uuid
-from collections.abc import Callable
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from app.core.app_lifespan import app_lifespan
+from app.core.app_middleware import LoggingMiddleware
 from app.utils.log_setup import logger, simple_endpoint_logger
 from app.dependencies.dep_settings import AppConfig, AppConfigDep
 from app.dependencies.dep_context import (
-    RequestIdDep, ClientIpDep, UserAgentDep, PathDep, MethodDep,
-    request_id_ctx, client_ip_ctx, user_agent_ctx, path_ctx, method_ctx
+    RequestIdDep, ClientIpDep, UserAgentDep, PathDep, MethodDep
 )
 
 
@@ -21,48 +19,9 @@ app = FastAPI(
     lifespan=app_lifespan,
 )
 
+app.add_middleware(LoggingMiddleware)
 
 
-@app.middleware("http")
-async def logging_middleware(request: Request, call_next: Callable):
-    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
-    client_ip = request.client.host if request.client else "unknown"
-    user_agent = request.headers.get("user-agent", "unknown")
-    path = request.url.path
-    method = request.method
-
-    # Set contextvars
-    request_id_ctx.set(request_id)
-    client_ip_ctx.set(client_ip)
-    user_agent_ctx.set(user_agent)
-    path_ctx.set(path)
-    method_ctx.set(method)
-
-    with logger.contextualize(
-        request_id=request_id,
-        client_ip=client_ip,
-        user_agent=user_agent,
-        path=path,
-        method=method,
-    ):
-        logger.debug(f"Request: {request.method} {request.url.path}")
-        start_time = time.time()
-        try:
-            response = await call_next(request)
-            execution_time = time.time() - start_time
-            logger.debug(
-                f"Response: {response.status_code} | "
-                f"Duration: {execution_time:.4f}s"
-            )
-            response.headers["X-Request-ID"] = request_id
-            return response
-        except Exception as e:
-            logger.exception("Unhandled exception during request processing")
-            raise e
-
-# ============================================================================
-# API Endpoints
-# ============================================================================
 
 @app.get("/", tags=["General"])
 @simple_endpoint_logger("root")
