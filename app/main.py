@@ -7,7 +7,10 @@ from collections.abc import Callable
 from fastapi import FastAPI, Request
 from app.utils.log_setup import setup_loguru, logger, simple_endpoint_logger
 from app.dependencies.dep_settings import AppConfig, AppConfigDep
-from app.dependencies.dep_context import request_id_ctx, client_ip_ctx, RequestIdDep, ClientIpDep
+from app.dependencies.dep_context import (
+    RequestIdDep, ClientIpDep, UserAgentDep, PathDep, MethodDep,
+    request_id_ctx, client_ip_ctx, user_agent_ctx, path_ctx, method_ctx
+)
 
 # Initialize and configure logging
 setup_loguru(redaction=True, redaction_mode="hash")
@@ -32,12 +35,24 @@ async def shutdown_event():
 async def logging_middleware(request: Request, call_next: Callable):
     request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
     client_ip = request.client.host if request.client else "unknown"
+    user_agent = request.headers.get("user-agent", "unknown")
+    path = request.url.path
+    method = request.method
 
     # Set contextvars
     request_id_ctx.set(request_id)
     client_ip_ctx.set(client_ip)
+    user_agent_ctx.set(user_agent)
+    path_ctx.set(path)
+    method_ctx.set(method)
 
-    with logger.contextualize(request_id=request_id, client_ip=client_ip):
+    with logger.contextualize(
+        request_id=request_id,
+        client_ip=client_ip,
+        user_agent=user_agent,
+        path=path,
+        method=method,
+    ):
         logger.info(f"Request: {request.method} {request.url.path}")
         start_time = time.time()
         try:
@@ -102,9 +117,18 @@ async def test_sensitive_data():
 
 @app.get("/whoami", tags=["Debug"])
 @simple_endpoint_logger("whoami")
-async def whoami(request_id: RequestIdDep, client_ip: ClientIpDep):
-    """Show current request_id and client_ip from context."""
+async def whoami(
+    request_id: RequestIdDep,
+    client_ip: ClientIpDep,
+    user_agent: UserAgentDep,
+    path: PathDep,
+    method: MethodDep,
+):
+    """Show current request context (request_id, client_ip, user_agent, path, method)."""
     return {
         "request_id": request_id,
-        "client_ip": client_ip
+        "client_ip": client_ip,
+        "user_agent": user_agent,
+        "path": path,
+        "method": method,
     }
