@@ -1,5 +1,3 @@
-"""Main FastAPI Application."""
-
 import time
 
 from app.core.app_exceptions import register_exception_handlers
@@ -12,15 +10,16 @@ from app.dependencies.dep_context import (
     RequestIdDep,
     UserAgentDep,
 )
+from app.dependencies.dep_repos import ModuleRepDep
 from app.dependencies.dep_settings import (
     AppConfigDep,
     JwtConfigDep,
     TokenConfigDep,
 )
+from app.schemas.sch_module import ModuleInDB
+from app.utils.log_setup import logger, logtrace_endpoint
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-from .utils.log_setup import logger, logtrace_endpoint
 
 app = FastAPI(
     title="Modkits API Service",
@@ -70,6 +69,14 @@ async def get_app_info(
         "token": token_config,
     }
     return environments_info
+
+
+@app.get("/modules", tags=["Modules"])
+async def list_modules(
+    module_repo: ModuleRepDep,
+) -> list[ModuleInDB]:
+    """List semua data module dari repository."""
+    return module_repo.get_all_modules()
 
 
 @app.get("/test-sensitive", tags=["Testing"])

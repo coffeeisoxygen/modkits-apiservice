@@ -136,7 +136,6 @@ def seed_modules(file_path: pathlib.Path) -> None:
         _ensure_parent_dir(file_path)
         modules = []
         for module in DEFAULT_MODULES:
-            # Use ModuleInDB for validation and serialization
             module_obj = ModuleInDB(
                 **module,
                 created_at=datetime.now(),
