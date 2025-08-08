@@ -5,6 +5,8 @@ description = "cuma buat parsing response dari json ke string biasa"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "argon2-cffi>=25.1.0",
+    "cryptography>=45.0.6",
     "fastapi-guard>=4.0.2",
     "fastapi[all]>=0.116.1",
     "loguru>=0.7.3",
