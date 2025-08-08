@@ -1,7 +1,5 @@
 """Protected router examples untuk mendemonstrasikan dependency auth."""
 
-from typing import Annotated
-
 from app.dependencies.dep_auth import CurrentActiveUserDep, CurrentAdminUserDep
 from app.schemas.sch_user import UserRead
 from fastapi import APIRouter
@@ -12,7 +10,7 @@ router = APIRouter(prefix="/protected", tags=["Protected"])
 @router.get("/user-only")
 async def user_only_endpoint(current_user: CurrentActiveUserDep) -> dict:
     """Endpoint yang hanya butuh user login dan aktif.
-    
+
     Menggunakan CurrentActiveUserDep yang:
     1. Cek token valid (get_current_user)
     2. Cek user is_active = True (get_current_active_user)
@@ -31,7 +29,7 @@ async def user_only_endpoint(current_user: CurrentActiveUserDep) -> dict:
 @router.get("/admin-only")
 async def admin_only_endpoint(current_user: CurrentAdminUserDep) -> dict:
     """Endpoint yang butuh user admin dan aktif.
-    
+
     Menggunakan CurrentAdminUserDep yang:
     1. Cek token valid (get_current_user)
     2. Cek user is_active = True (get_current_active_user)
@@ -71,7 +69,7 @@ async def admin_delete_user(
     current_user: CurrentAdminUserDep,
 ) -> dict:
     """Delete user - hanya admin yang bisa.
-    
+
     Contoh endpoint yang butuh admin privileges.
     """
     return {
