@@ -9,9 +9,11 @@ from app.schemas.sch_user import UserRead
 from app.service.hashcryp.serv_hasher import HasherService
 from app.service.token.srv_token import create_access_token
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
 @router.post("/token", response_model=Token)
@@ -36,6 +38,16 @@ async def login_for_access_token(
 
     access_token = create_access_token({"sub": user.username})
     return Token(access_token=access_token, token_type="bearer")
+
+
+@router.post("/logout")
+async def logout() -> dict:
+    """Logout endpoint - Stateless logout (client should delete token)."""
+    return {
+        "message": "Logout successful",
+        "detail": "Please delete your token from client storage",
+        "status": "logged_out",
+    }
 
 
 @router.get("/me", response_model=UserRead)

@@ -74,3 +74,11 @@ class UserRepository:
 
     def get_all_users(self) -> list[UserInDB]:
         return self._users
+
+    def get_user_by_id(self, user_id: str) -> UserInDB | None:
+        for user in self._users:
+            if user.id == user_id:
+                logger.debug("User found by ID.", user_id=user_id)
+                return user
+        logger.warning("User not found by ID.", user_id=user_id)
+        return None
