@@ -196,7 +196,7 @@ class Settings(BaseSettings):
 
     @property
     def log_profile(self):
-        """logging profile setup based on environment
+        """Logging profile setup based on environment.
 
         habit logging pada prod dan dev sangat berbeda
         dengan ada nya profile , auto switch nya akan sangat nyaman sekali
