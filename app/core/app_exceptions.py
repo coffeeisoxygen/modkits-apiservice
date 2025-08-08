@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 
-from app.utils.exceptions import (
+from app.core.exceptions import (
     AppExcpCaseError,
     ResourceNotFoundError,
     UnauthorizedError,
