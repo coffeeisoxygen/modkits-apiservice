@@ -20,61 +20,66 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     """Middleware for request logging and context variable management."""
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        """Process request, set context variables, and log request/response details.
+        request_id, client_ip, user_agent, path, method = self._extract_request_info(
+            request
+        )
+        self._set_context_vars(request_id, client_ip, user_agent, path, method)
 
-        Args:
-            request: The incoming HTTP request
-            call_next: The next middleware or route handler
+        request_logger = logger.bind(
+            operation="request",
+            request_id=request_id,
+            client_ip=client_ip,
+            user_agent=user_agent,
+            path=path,
+            method=method,
+        )
 
-        Returns:
-            The HTTP response
-        """
-        # Extract request information
+        with request_logger.contextualize():
+            request_logger.debug(f"Request: {method} {path}")
+            start_time = time.time()
+            try:
+                response = await call_next(request)
+                self._log_response(response, start_time, request_logger)
+                response.headers["X-Request-ID"] = request_id
+            except Exception:
+                self._log_exception(method, path, start_time, request_logger)
+                raise
+            else:
+                return response
+
+    def _extract_request_info(self, request: Request) -> tuple[str, str, str, str, str]:
         request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
         client_ip = request.client.host if request.client else "unknown"
         user_agent = request.headers.get("user-agent", "unknown")
         path = request.url.path
         method = request.method
+        return request_id, client_ip, user_agent, path, method
 
-        # Set context variables for dependency injection
+    def _set_context_vars(
+        self,
+        request_id: str,
+        client_ip: str,
+        user_agent: str,
+        path: str,
+        method: str,
+    ) -> None:
         request_id_ctx.set(request_id)
         client_ip_ctx.set(client_ip)
         user_agent_ctx.set(user_agent)
         path_ctx.set(path)
         method_ctx.set(method)
 
-        # Log with context
-        with logger.contextualize(
-            request_id=request_id,
-            client_ip=client_ip,
-            user_agent=user_agent,
-            path=path,
-            method=method,
-        ):
-            # Log request
-            logger.debug(f"Request: {method} {path}")
-            start_time = time.time()
+    def _log_response(
+        self, response: Response, start_time: float, logger_instance  # noqa: ANN001
+    ) -> None:
+        execution_time = time.time() - start_time
+        logger_instance.debug(
+            f"Response: {response.status_code} | Duration: {execution_time:.4f}s"
+        )
 
-            try:
-                # Process request
-                response = await call_next(request)
-
-                # Log response
-                execution_time = time.time() - start_time
-                logger.debug(
-                    f"Response: {response.status_code} | "
-                    f"Duration: {execution_time:.4f}s"
-                )
-
-                # Add request ID to response headers
-                response.headers["X-Request-ID"] = request_id
-            except Exception:
-                # Log exception with full context
-                logger.exception(f"Unhandled exception during {method} {path}")
-                execution_time = time.time() - start_time
-                logger.error(f"Failed request duration: {execution_time:.4f}s")
-
-                # Re-raise for FastAPI exception handlers
-                raise
-            else:
-                return response
+    def _log_exception(
+        self, method: str, path: str, start_time: float, logger_instance  # noqa: ANN001
+    ) -> None:
+        logger_instance.exception(f"Unhandled exception during {method} {path}")
+        execution_time = time.time() - start_time
+        logger_instance.error(f"Failed request duration: {execution_time:.4f}s")

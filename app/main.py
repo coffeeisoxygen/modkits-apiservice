@@ -12,7 +12,7 @@ from app.dependencies.dep_context import (
     UserAgentDep,
 )
 from app.dependencies.dep_settings import AppConfig, AppConfigDep
-from app.utils.log_setup import logger, simple_endpoint_logger
+from app.utils.log_setup import logger, logtrace_endpoint
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -34,14 +34,14 @@ app.add_middleware(
 
 
 @app.get("/", tags=["General"])
-@simple_endpoint_logger("root")
+@logtrace_endpoint("root")
 async def read_root():
     """Root endpoint providing a welcome message."""
     return {"message": "Welcome to Modkits API Service!", "status": "ok"}
 
 
 @app.get("/health", tags=["General"])
-@simple_endpoint_logger("health_check")
+@logtrace_endpoint("health_check")
 async def health_check():
     """Health check endpoint to verify service status."""
     return {
@@ -52,14 +52,14 @@ async def health_check():
 
 
 @app.get("/info", tags=["Application"])
-@simple_endpoint_logger("app_info")
+@logtrace_endpoint("app_info")
 async def get_app_info(app_config: AppConfigDep) -> AppConfig:
     """Get application configuration information."""
     return app_config
 
 
 @app.get("/test-sensitive", tags=["Testing"])
-@simple_endpoint_logger("test_sensitive")
+@logtrace_endpoint("test_sensitive")
 async def test_sensitive_data():
     """Test endpoint for sensitive data redaction."""
     logger.info("Testing sensitive data logging:")
@@ -80,7 +80,7 @@ async def test_sensitive_data():
 
 
 @app.get("/whoami", tags=["Debug"])
-@simple_endpoint_logger("whoami")
+@logtrace_endpoint("whoami")
 async def whoami(
     request_id: RequestIdDep,
     client_ip: ClientIpDep,

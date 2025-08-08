@@ -1,4 +1,3 @@
-# filepath: c:\Users\YOGA\project\otomax\modkits-apiservice\app\dependencies\dep_context.py
 """Dependencies for request context management."""
 
 import contextvars

@@ -52,7 +52,7 @@ def get_path_config() -> PathConfig:
     return settings.data_paths
 
 
-def get_log_settings(
+def get_log_settings(  # noqa: C901
     log_level: str | None = None,
     log_redaction: bool | None = None,
     log_redaction_mode: str | None = None,
@@ -65,7 +65,15 @@ def get_log_settings(
 ) -> LogSettings:
     """Returns log settings configuration from settings, with optional override.
 
-    example:
+    Example usage:
+        >>> from app.dependencies.dep_settings import (
+        ...     get_log_settings,
+        ...     setup_loguru,
+        ... )
+        >>> # Default settings
+        >>> log_settings = get_log_settings()
+        >>> setup_loguru(**log_settings.dict())
+        # Override specific settings
     # Contoh override: level DEBUG dan sink file custom
         >>> log_settings = get_log_settings(
             ... log_level="DEBUG",

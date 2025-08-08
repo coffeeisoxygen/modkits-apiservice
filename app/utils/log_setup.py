@@ -1,16 +1,17 @@
 """setup loguru - Simple & Effective Endpoint Logging."""
 
+# ruff:noqa
 import datetime
 import functools
 import hashlib
 import logging
 import os
+import re
 import sys
 import warnings
 from collections.abc import Callable
-from typing import Any, Literal
-import re
 from pathlib import Path
+from typing import Any, Literal
 
 import stackprinter
 from loguru import logger
@@ -90,7 +91,7 @@ def redact_message(text: str, redaction_mode: str = "hash") -> str:
                     lambda m: f"[REDACTED:{hash_value(m.group(0))}]", message
                 )
             else:
-                message = compiled.sub(lambda m: "[REDACTED]", message)
+                message = compiled.sub(lambda m: "[REDACTED]", message)  # noqa: ARG005
 
     for keyword in SENSITIVE_KEYWORDS:
         pattern = rf"(?i){keyword}\s*[:=]\s*['\"]?([^'\"\s,}}]+)"
@@ -232,9 +233,9 @@ def setup_loguru(
 
     # Determine formatter for each sink
     # If log_format is None or empty, use default formatter for each sink
-    stdout_format = FORMAT_DEVMODE if not log_format else log_format
-    stderr_format = FORMAT_DEVMODE_EXCEPTION if not log_format else log_format
-    file_format = FORMAT_PRODUCTION if not log_format else log_format
+    stdout_format = log_format if log_format else FORMAT_DEVMODE
+    stderr_format = log_format if log_format else FORMAT_DEVMODE_EXCEPTION
+    file_format = log_format if log_format else FORMAT_PRODUCTION
 
     if sink_stdout:
         logger.add(
@@ -298,7 +299,7 @@ def setup_loguru(
 # ===========================================================================
 
 
-def simple_endpoint_logger(endpoint_name: str | None = None) -> Callable:
+def logtrace_endpoint(endpoint_name: str | None = None) -> Callable:
     """Decorator to log the start and end of an endpoint function."""
 
     def decorator(func: Callable) -> Callable:
@@ -316,7 +317,7 @@ def simple_endpoint_logger(endpoint_name: str | None = None) -> Callable:
     return decorator
 
 
-endpoint_logger = simple_endpoint_logger
+endpoint_logger = logtrace_endpoint
 
 
 # Tambahkan fungsi ini di bawah patch_warnings_to_loguru()
