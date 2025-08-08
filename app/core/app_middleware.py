@@ -29,7 +29,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             operation="request",
             request_id=request_id,
             client_ip=client_ip,
-            user_agent=user_agent,
+            # user_agent=user_agent,
             path=path,
             method=method,
         )
