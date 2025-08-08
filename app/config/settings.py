@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=(".env", ".env.dev"),  # Urutan penting
+        env_file=(".env", ".env.development"),  # Urutan penting
         env_file_encoding="utf-8",
         case_sensitive=False,
         env_nested_delimiter="__",
