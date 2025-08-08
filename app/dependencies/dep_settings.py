@@ -5,9 +5,9 @@ mengikuti prinsip loose coupling dan separation of concerns.
 """
 
 import os
+import warnings
 from functools import lru_cache
 from pathlib import Path
-from tokenize import Token
 from typing import Annotated
 
 from app.config.settings import (
@@ -47,9 +47,7 @@ def get_settings() -> Settings:
     # Verify files exist
     for env_file in env_files:
         if not os.path.isfile(env_file):
-            import warnings
-
-            warnings.warn(f"Environment file {env_file} tidak ditemukan")
+            warnings.warn(f"Environment file {env_file} tidak ditemukan", stacklevel=2)
 
     # Pass absolute paths to ensure files are found
     abs_paths = [os.path.abspath(path) for path in env_files]
@@ -78,6 +76,7 @@ def get_jwt_config() -> JwtConfig:
     settings = get_settings()
     return settings.jwt
 
+
 def get_token_config() -> TokenConfig:
     """Get token configuration dari settings.
 
@@ -86,6 +85,7 @@ def get_token_config() -> TokenConfig:
     """
     settings = get_settings()
     return settings.token
+
 
 def get_path_settings() -> tuple[Path, Path]:
     """Get path settings dari application config.
@@ -99,6 +99,15 @@ def get_path_settings() -> tuple[Path, Path]:
     """
     app_config = get_app_config()
     return app_config.path_data, app_config.path_keys
+
+
+def get_env_settings() -> str:
+    """Get Only current environment.
+
+    from settings and return environment name
+    """
+    app_config = get_app_config()
+    return app_config.env
 
 
 # FastAPI Dependencies (type-safe)
