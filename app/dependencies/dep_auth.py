@@ -1,24 +1,26 @@
 """Authentication dependencies."""
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
-from app.repos.rep_user import UserRepository
 from app.schemas.sch_user import UserInDB
 from app.service.token.srv_token import decode_access_token
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
+
+if TYPE_CHECKING:
+    from app.repos.rep_user import UserRepository
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
-def get_user_repository() -> UserRepository:
-    """Get user repository instance."""
-    return UserRepository()
+def get_user_repo_from_state(request: Request) -> "UserRepository":
+    """Get UserRepository from app.state."""
+    return request.app.state.user_repo
 
 
 def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
-    user_repo: Annotated[UserRepository, Depends(get_user_repository)],
+    user_repo: Annotated["UserRepository", Depends(get_user_repo_from_state)],
 ) -> UserInDB:
     """Get current authenticated user from JWT token."""
     credentials_exception = HTTPException(

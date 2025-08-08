@@ -1,8 +1,6 @@
 """Base exceptions for the application."""
 
-from app.dependencies.dep_settings import get_app_config
-
-APP_NAME = get_app_config().service
+APP_NAME = "MODKIT-SERVICE"
 
 
 class AppExcpCaseError(Exception):
