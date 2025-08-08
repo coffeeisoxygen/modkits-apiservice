@@ -1,17 +1,18 @@
-"""agar tidak muter muter import dan dependensi.
+"""Dependency injection untuk settings application.
 
-agar tidak ribet klo import dan pas butuh, jadi di buat lah dependencies settings ini.
+Modul ini menyediakan akses ke konfigurasi aplikasi melalui dependency injection,
+mengikuti prinsip loose coupling dan separation of concerns.
 """
 
 import os
+import warnings
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated
 
 from app.config.settings import (
     AppConfig,
-    LogSettings,
-    PathConfig,
-    SecurityConfig,
+    JwtConfig,
     Settings,
 )
 from fastapi import Depends
@@ -19,7 +20,19 @@ from fastapi import Depends
 
 @lru_cache
 def get_settings() -> Settings:
-    """Dynamic environment loading using _env_file parameter."""
+    """Get application settings dengan environment-specific configuration.
+
+    Fungsi ini memuat settings dari file environment berdasarkan nilai APP_ENV.
+    Menggunakan LRU cache untuk memastikan settings hanya dimuat sekali selama
+    lifecycle aplikasi.
+
+    File environment dimuat dengan urutan:
+    1. Base .env file (selalu)
+    2. File spesifik environment (.env.dev, .env.prod, .env.test)
+
+    Returns:
+        Settings: Objek settings aplikasi yang terkonfigurasi
+    """
     app_env = os.getenv("APP_ENV", "development").lower()
     env_files = [".env"]  # Base file always loaded first
 
@@ -30,97 +43,54 @@ def get_settings() -> Settings:
     else:  # development (default)
         env_files.append(".env.dev")
 
+    # Check file existence (optional warning, not blocking)
+    for env_file in env_files:
+        if not os.path.exists(env_file):
+            warnings.warn(f"Environment file {env_file} tidak ditemukan", stacklevel=2)
+
     # Using Pydantic Settings _env_file parameter for runtime loading
     return Settings(_env_file=env_files)  # type: ignore
 
 
 def get_app_config() -> AppConfig:
-    """Returns app configuration from settings."""
-    settings: Settings = get_settings()
-    return settings.app
+    """Get app configuration dari settings.
 
+    Dependency ini memungkinkan injeksi hanya bagian AppConfig
+    dari settings, mengikuti prinsip minimal dependencies.
 
-def get_security_config() -> SecurityConfig:
-    """Returns security configuration from settings."""
-    settings: Settings = get_settings()
-    return settings.security
-
-
-def get_path_config() -> PathConfig:
-    """Returns path configuration from settings."""
-    settings: Settings = get_settings()
-    return settings.data_paths
-
-
-def get_log_settings(  # noqa: C901
-    log_level: str | None = None,
-    log_redaction: bool | None = None,
-    log_redaction_mode: str | None = None,
-    log_sink_stdout: bool | None = None,
-    log_sink_stderr: bool | None = None,
-    log_sink_file: str | None = None,
-    log_serialization: bool | None = None,
-    log_enqueue: bool | None = None,
-    log_diagnose: bool | None = None,
-) -> LogSettings:
-    """Returns log settings configuration from settings, with optional override.
-
-    Example usage:
-        >>> from app.dependencies.dep_settings import (
-        ...     get_log_settings,
-        ...     setup_loguru,
-        ... )
-        >>> # Default settings
-        >>> log_settings = get_log_settings()
-        >>> setup_loguru(**log_settings.dict())
-        # Override specific settings
-    # Contoh override: level DEBUG dan sink file custom
-        >>> log_settings = get_log_settings(
-            ... log_level="DEBUG",
-            ... log_sink_file="logs/custom.log"
-        ... )
-        >>> setup_loguru(
-                level=log_settings.log_level,
-                redaction=log_settings.log_redaction,
-                redaction_mode=log_settings.log_redaction_mode,
-                sink_stdout=log_settings.log_sink_stdout,
-                sink_stderr=log_settings.log_sink_stderr,
-        )
-    # Jika ingin tetap auto profile (tanpa override), cukup:
-        >>> log_settings = get_log_settings()
+    Returns:
+        AppConfig: Konfigurasi aplikasi
     """
-    settings: Settings = get_settings()
-    profile = settings.log_profile.copy()
-
-    # Override profile with provided params if not None
-    if log_level is not None:
-        profile["log_level"] = log_level
-    if log_redaction is not None:
-        profile["log_redaction"] = log_redaction
-    if log_redaction_mode is not None:
-        profile["log_redaction_mode"] = log_redaction_mode
-    if log_sink_stdout is not None:
-        profile["log_sink_stdout"] = log_sink_stdout
-    if log_sink_stderr is not None:
-        profile["log_sink_stderr"] = log_sink_stderr
-    if log_sink_file is not None:
-        profile["log_sink_file"] = log_sink_file
-    if log_serialization is not None:
-        profile["log_serialization"] = log_serialization
-    if log_enqueue is not None:
-        profile["log_enqueue"] = log_enqueue
-    if log_diagnose is not None:
-        profile["log_diagnose"] = log_diagnose
-    if "log_format" not in profile or profile["log_format"] is None:
-        # If no format provided, use default from settings
-        profile["log_format"] = settings.log_format or None
-
-    return LogSettings(**profile)
+    settings = get_settings()
+    return settings.appinfo
 
 
-# FastAPI Dependencies
-AppConfigDep = Annotated[AppConfig, Depends(get_app_config)]
-SecurityConfigDep = Annotated[SecurityConfig, Depends(get_security_config)]
-PathConfigDep = Annotated[PathConfig, Depends(get_path_config)]
-LogSettingsDep = Annotated[LogSettings, Depends(get_log_settings)]
+def get_jwt_config() -> JwtConfig:
+    """Get JWT security configuration dari settings.
+
+    Returns:
+        JwtConfig: Pengaturan konfigurasi JWT
+    """
+    settings = get_settings()
+    return settings.jwt_config
+
+
+def get_path_settings() -> tuple[Path, Path]:
+    """Get path settings dari application config.
+
+    Dependency ini memungkinkan akses langsung ke path settings
+    tanpa perlu mengakses seluruh AppConfig, mengikuti prinsip
+    minimal dependencies.
+
+    Returns:
+        Tuple[Path, Path]: Tuple berisi (path_data, path_keys)
+    """
+    app_config = get_app_config()
+    return app_config.path_data, app_config.path_keys
+
+
+# FastAPI Dependencies (type-safe)
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+AppConfigDep = Annotated[AppConfig, Depends(get_app_config)]
+JwtConfigDep = Annotated[JwtConfig, Depends(get_jwt_config)]
+PathSettingsDep = Annotated[tuple[Path, Path], Depends(get_path_settings)]
