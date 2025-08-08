@@ -29,6 +29,7 @@ def generate_otomax_sign(purpose: str, params: list[str]) -> str:
 
     return sign
 
+# memberid=vps809|pin=777999|password=vps777999
 
 def main():
     sign = generate_otomax_sign(
