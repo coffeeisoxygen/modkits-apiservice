@@ -7,7 +7,7 @@ import os
 from functools import lru_cache
 from typing import Annotated
 
-from app.core.settings import (
+from app.config.settings import (
     AppConfig,
     LogSettings,
     PathConfig,
