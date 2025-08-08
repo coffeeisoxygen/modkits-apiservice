@@ -2,6 +2,7 @@
 
 from app.config.cfg_app import AppConfig
 from app.config.cfg_jwt import JwtConfig, TokenConfig
+from app.config.cfg_logging import LogSettings
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +27,7 @@ class Settings(BaseSettings):
     app: AppConfig
     jwt: JwtConfig
     token: TokenConfig
+    log: LogSettings = LogSettings()  # Add logging configuration
 
     @property
     def is_dev(self) -> bool:
@@ -38,3 +40,8 @@ class Settings(BaseSettings):
     @property
     def is_test(self) -> bool:
         return self.app.is_testing
+
+    @property
+    def environment(self) -> str:
+        """Get current environment name."""
+        return self.app.env.value
