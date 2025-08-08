@@ -1,12 +1,12 @@
 import time
-
+import uvicorn
 from app.core.app_exceptions import register_exception_handlers
 from app.core.app_lifespan import app_lifespan
 from app.core.app_middleware import LoggingMiddleware
 from app.core.app_router import api_router
 from app.dependencies.dep_auth import CurrentActiveUserDep
 from app.utils.log_setup import logtrace_endpoint
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(
@@ -33,6 +33,14 @@ app.include_router(api_router)
 async def read_root():
     """Root endpoint providing a welcome message."""
     return {"message": "Welcome to Modkits API Service!", "status": "ok"}
+
+
+@app.get("/trx", tags=["General"])
+@logtrace_endpoint("transaction")
+async def transaction_endpoint(request: Request) -> dict:
+    """Transaction endpoint - returns all received query parameters."""
+    params = dict(request.query_params)
+    return {"received_params": params, "status": "ok"}
 
 
 @app.get("/home", tags=["General"])
@@ -65,3 +73,7 @@ async def health_check():
         "service": "modkits-apiservice",
         "timestamp": time.time(),
     }
+
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000)
