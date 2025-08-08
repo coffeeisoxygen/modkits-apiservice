@@ -7,12 +7,14 @@ mengikuti prinsip loose coupling dan separation of concerns.
 import os
 from functools import lru_cache
 from pathlib import Path
+from tokenize import Token
 from typing import Annotated
 
 from app.config.settings import (
     AppConfig,
     JwtConfig,
     Settings,
+    TokenConfig,
 )
 from fastapi import Depends
 
@@ -76,6 +78,14 @@ def get_jwt_config() -> JwtConfig:
     settings = get_settings()
     return settings.jwt
 
+def get_token_config() -> TokenConfig:
+    """Get token configuration dari settings.
+
+    Returns:
+        TokenConfig: Pengaturan konfigurasi token
+    """
+    settings = get_settings()
+    return settings.token
 
 def get_path_settings() -> tuple[Path, Path]:
     """Get path settings dari application config.
@@ -95,4 +105,5 @@ def get_path_settings() -> tuple[Path, Path]:
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 AppConfigDep = Annotated[AppConfig, Depends(get_app_config)]
 JwtConfigDep = Annotated[JwtConfig, Depends(get_jwt_config)]
+TokenConfigDep = Annotated[TokenConfig, Depends(get_token_config)]
 PathSettingsDep = Annotated[tuple[Path, Path], Depends(get_path_settings)]

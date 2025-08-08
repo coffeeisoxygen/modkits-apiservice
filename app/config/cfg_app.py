@@ -4,7 +4,7 @@ from enum import StrEnum
 from pathlib import Path
 
 from app._version import __version__ as version
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, field_validator
 
 
 class EnvironmentEnum(StrEnum):
@@ -18,13 +18,13 @@ class EnvironmentEnum(StrEnum):
 class AppConfig(BaseModel):
     """Application configuration."""
 
-    debug: bool = Field(default=False, alias="APP_DEBUG")
-    env: EnvironmentEnum = Field(default=EnvironmentEnum.DEVELOPMENT, alias="APP_ENV")
-    service: str = Field(default="MODKIT-APISERVICES", alias="APP_SERVICE")
-    version: str = Field(default=version, alias="APP_VERSION")
-    path_data: Path = Field(default=Path("secrets/data"), alias="APP_PATH_DATA")
-    path_keys: Path = Field(default=Path("secrets/keys"), alias="APP_PATH_KEYS")
-    create_missing_paths: bool = Field(default=True, alias="APP__CREATE_MISSING_PATHS")
+    debug: bool = False
+    env: EnvironmentEnum = EnvironmentEnum.DEVELOPMENT
+    service: str = "MODKIT-APISERVICES"
+    version: str = version
+    path_data: Path = Path("secrets/data")
+    path_keys: Path = Path("secrets/keys")
+    create_missing_paths: bool = True
 
     @field_validator("env", mode="before")
     @classmethod

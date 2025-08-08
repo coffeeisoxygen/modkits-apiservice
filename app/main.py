@@ -12,7 +12,11 @@ from app.dependencies.dep_context import (
     RequestIdDep,
     UserAgentDep,
 )
-from app.dependencies.dep_settings import AppConfig, AppConfigDep
+from app.dependencies.dep_settings import (
+    AppConfigDep,
+    JwtConfigDep,
+    TokenConfigDep,
+)
 from app.utils.log_setup import logger, logtrace_endpoint
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -55,9 +59,16 @@ async def health_check():
 
 @app.get("/info", tags=["Application"])
 @logtrace_endpoint("app_info")
-async def get_app_info(app_config: AppConfigDep) -> AppConfig:
+async def get_app_info(
+    app_config: AppConfigDep, jwt_config: JwtConfigDep, token_config: TokenConfigDep
+) -> dict:
     """Get application configuration information."""
-    return app_config
+    environments_info = {
+        "app": app_config,
+        "jwt": jwt_config,
+        "token": token_config,
+    }
+    return environments_info
 
 
 @app.get("/test-sensitive", tags=["Testing"])
