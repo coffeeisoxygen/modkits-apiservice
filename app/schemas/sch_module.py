@@ -112,11 +112,18 @@ class ModuleCreate(ModuleCredential):
 
     @field_validator("provider", mode="before")
     @classmethod
-    def validate_provider(cls, v: EnumAPIProvider) -> EnumAPIProvider:
-        """Validasi provider harus sesuai enum."""
-        if not isinstance(v, EnumAPIProvider):
-            raise ValueError("provider harus salah satu dari EnumAPIProvider")  # noqa: TRY004
-        return v
+    def validate_provider(cls, v: str | EnumAPIProvider) -> EnumAPIProvider:
+        """Validasi provider harus salah satu dari EnumAPIProvider."""
+        if isinstance(v, EnumAPIProvider):
+            return v
+        if isinstance(v, str):
+            valid_values = [e.value for e in EnumAPIProvider]
+            if v in valid_values:
+                return EnumAPIProvider(v)
+            raise ValueError(f"provider harus salah satu dari {valid_values}")
+        raise ValueError(
+            f"provider harus salah satu dari {[e.value for e in EnumAPIProvider]}"
+        )
 
     @field_validator("is_active", mode="before")
     @classmethod

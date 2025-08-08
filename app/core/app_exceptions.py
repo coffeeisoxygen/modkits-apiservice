@@ -5,6 +5,7 @@ from typing import Any
 
 from app.core.exceptions import (
     AppExcpCaseError,
+    PathResolverError,
     ResourceNotFoundError,
     UnauthorizedError,
     ValidationError,
@@ -29,7 +30,7 @@ def create_exception_handler(
     """
     detail: dict[str, str] = {"message": initial_detail}
 
-    async def exception_handler(_: Request, exc: AppExcpCaseError) -> JSONResponse:
+    async def exception_handler(_: Request, exc: AppExcpCaseError) -> JSONResponse:  # noqa: RUF029
         if exc.message:
             detail["message"] = exc.message
 
@@ -98,5 +99,13 @@ def register_exception_handlers(app: FastAPI) -> None:
         create_exception_handler(
             YamlReloadExceptionError.status_code,
             YamlReloadExceptionError.default_message,
+        ),  # pyright: ignore[reportArgumentType]
+    )
+
+    app.add_exception_handler(
+        PathResolverError,
+        create_exception_handler(
+            PathResolverError.status_code,
+            PathResolverError.default_message,
         ),  # pyright: ignore[reportArgumentType]
     )

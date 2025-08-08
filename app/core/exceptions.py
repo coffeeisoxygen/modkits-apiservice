@@ -41,3 +41,8 @@ class UnauthorizedError(AppExcpCaseError):
 class YamlReloadExceptionError(AppExcpCaseError):
     default_message = "Failed to reload YAML file."
     status_code = 500
+
+
+class PathResolverError(AppExcpCaseError):
+    default_message = "Failed to resolve file path."
+    status_code = 500

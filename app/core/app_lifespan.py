@@ -10,22 +10,21 @@ from app.dependencies.dep_settings import get_app_config, get_path_settings
 from app.repos.rep_member import MemberRepository
 from app.repos.rep_module import ModuleRepository
 from app.repos.rep_user import UserRepository
+from app.service.seeder.factory import seed_all_data
 from app.service.watcher.srv_watcher import FileWatcher
 from app.utils.log_setup import logger, setup_loguru
 
 LEVEL = get_app_config().log_level
 setup_loguru(level=LEVEL)
 
-# Create exclusive logger for lifespan operations
-lifespan_logger = logger.bind(
-    component="lifespan", operation="app_startup_shutdown", context="fastapi_lifecycle"
-)
+lifespan_logger = logger
 
 # Get paths from settings
 data_path = get_path_settings()[0]
 user_file_path: pathlib.Path = data_path / "users.yaml"
 module_file_path: pathlib.Path = data_path / "modules.yaml"
 member_file_path: pathlib.Path = data_path / "members.yaml"
+
 
 # Initialize repositories with injected paths
 user_repo = UserRepository(file_path=user_file_path)
@@ -41,72 +40,52 @@ member_watcher = FileWatcher(file_path=member_file_path, callback=member_repo.re
 @asynccontextmanager
 async def app_lifespan(app):  # noqa: ANN001, RUF029
     """Lifespan context for FastAPI app: setup logging and log events."""
-    lifespan_logger.info("🚀 FastAPI application startup initiated")
+    lifespan_logger.info("FastAPI application startup initiated")
+    lifespan_logger.info("Seeding data files if not exist")
 
-    # Task 1: Register repositories to app state
-    startup_logger = lifespan_logger.bind(task="repository_registration")
-    startup_logger.info("Starting repository registration to app state")
+    try:
+        seed_all_data(
+            users_path=user_file_path,
+            modules_path=module_file_path,
+            members_path=member_file_path,
+        )
+        lifespan_logger.info("Data seeding completed successfully")
+    except Exception as e:
+        lifespan_logger.error(f"Data seeding failed: {e}")
+        raise
 
+    lifespan_logger.info("Registering repositories to app state")
     app.state.user_repo = user_repo
-    startup_logger.debug("UserRepository registered to app.state")
-
     app.state.module_repo = module_repo
-    startup_logger.debug("ModuleRepository registered to app.state")
-
     app.state.member_repo = member_repo
-    startup_logger.debug("MemberRepository registered to app.state")
+    lifespan_logger.info("All repositories registered to app state")
 
-    startup_logger.success("All repositories successfully registered to app state")
-
-    # Task 2: Start file watchers
-    watcher_logger = lifespan_logger.bind(task="file_watcher_startup")
-    watcher_logger.info("Starting file watchers for data monitoring")
-
+    lifespan_logger.info("Starting file watchers for data monitoring")
     user_watcher.start()
-    watcher_logger.debug("User file watcher started", file_path=str(user_file_path))
-
     module_watcher.start()
-    watcher_logger.debug("Module file watcher started", file_path=str(module_file_path))
-
     member_watcher.start()
-    watcher_logger.debug("Member file watcher started", file_path=str(member_file_path))
-
-    # Register watchers to app state
     app.state.user_watcher = user_watcher
     app.state.module_watcher = module_watcher
     app.state.member_watcher = member_watcher
-
-    watcher_logger.success("All file watchers started and registered to app state")
-    lifespan_logger.success("🎉 FastAPI application startup completed successfully")
+    lifespan_logger.info("All file watchers started and registered to app state")
+    lifespan_logger.info("FastAPI application startup completed successfully")
 
     try:
         yield
     finally:
-        # Shutdown process
-        shutdown_logger = lifespan_logger.bind(task="application_shutdown")
-        shutdown_logger.info("🛑 FastAPI application shutdown initiated")
-
-        # Stop watchers
-        watcher_shutdown_logger = shutdown_logger.bind(subtask="watcher_cleanup")
-        watcher_shutdown_logger.info("Stopping file watchers")
-
+        lifespan_logger.info("FastAPI application shutdown initiated")
+        lifespan_logger.info("Stopping file watchers")
         try:
             user_watcher.stop()
-            watcher_shutdown_logger.debug("User file watcher stopped")
         except Exception as e:
-            watcher_shutdown_logger.error("Failed to stop user watcher", error=str(e))
-
+            lifespan_logger.error(f"Failed to stop user watcher: {e}")
         try:
             module_watcher.stop()
-            watcher_shutdown_logger.debug("Module file watcher stopped")
         except Exception as e:
-            watcher_shutdown_logger.error("Failed to stop module watcher", error=str(e))
-
+            lifespan_logger.error(f"Failed to stop module watcher: {e}")
         try:
             member_watcher.stop()
-            watcher_shutdown_logger.debug("Member file watcher stopped")
         except Exception as e:
-            watcher_shutdown_logger.error("Failed to stop member watcher", error=str(e))
-
-        watcher_shutdown_logger.success("File watchers cleanup completed")
-        shutdown_logger.success("🏁 FastAPI application shutdown completed")
+            lifespan_logger.error(f"Failed to stop member watcher: {e}")
+        lifespan_logger.info("File watchers cleanup completed")
+        lifespan_logger.info("FastAPI application shutdown completed")
