@@ -1,4 +1,5 @@
 import time
+
 import uvicorn
 from app.core.app_exceptions import register_exception_handlers
 from app.core.app_lifespan import app_lifespan
