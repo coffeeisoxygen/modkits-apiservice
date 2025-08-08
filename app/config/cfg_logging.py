@@ -1,5 +1,15 @@
 from pydantic import BaseModel, field_validator, model_validator
 
+valid_levels = [
+    "TRACE",
+    "DEBUG",
+    "INFO",
+    "SUCCESS",
+    "WARNING",
+    "ERROR",
+    "CRITICAL",
+]
+
 
 class LogSettings(BaseModel):
     """Log settings configuration."""
@@ -19,15 +29,6 @@ class LogSettings(BaseModel):
     @classmethod
     def validate_log_level(cls, value: str) -> str:
         """Validate log level."""
-        valid_levels = [
-            "TRACE",
-            "DEBUG",
-            "INFO",
-            "SUCCESS",
-            "WARNING",
-            "ERROR",
-            "CRITICAL",
-        ]
         if value not in valid_levels:
             raise ValueError(
                 f"Invalid log level: {value}. Must be one of: {valid_levels}"

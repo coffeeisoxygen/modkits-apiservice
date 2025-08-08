@@ -72,3 +72,28 @@ class AppConfig(BaseModel):
             raise ValueError(f"Path bukan direktori: {path}")
 
         return path
+
+    @property
+    def is_development(self) -> bool:
+        """Check if environment is development."""
+        return self.env == EnvironmentEnum.DEVELOPMENT
+
+    @property
+    def is_production(self) -> bool:
+        """Check if environment is production."""
+        return self.env == EnvironmentEnum.PRODUCTION
+
+    @property
+    def is_testing(self) -> bool:
+        """Check if environment is testing."""
+        return self.env == EnvironmentEnum.TESTING
+
+    @property
+    def log_level(self) -> str:
+        """Get appropriate log level based on environment."""
+        if self.is_development:
+            return "DEBUG"
+        elif self.is_testing:
+            return "INFO"
+        else:
+            return "WARNING"  # Production default
