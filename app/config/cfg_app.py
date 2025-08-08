@@ -18,12 +18,12 @@ class EnvironmentEnum(StrEnum):
 class AppConfig(BaseModel):
     """Application configuration."""
 
-    debug: bool = Field(default=False, alias="APP__DEBUG")
+    debug: bool = Field(default=False, alias="APP_DEBUG")
     env: EnvironmentEnum = Field(default=EnvironmentEnum.DEVELOPMENT, alias="APP_ENV")
-    service: str = Field(default="MODKIT-APISERVICES", alias="APP__SERVICE")
-    version: str = Field(default=version, alias="APP__VERSION")
-    path_data: Path = Field(default=Path("secrets/data"), alias="APP__PATH_DATA")
-    path_keys: Path = Field(default=Path("secrets/keys"), alias="APP__PATH_KEYS")
+    service: str = Field(default="MODKIT-APISERVICES", alias="APP_SERVICE")
+    version: str = Field(default=version, alias="APP_VERSION")
+    path_data: Path = Field(default=Path("secrets/data"), alias="APP_PATH_DATA")
+    path_keys: Path = Field(default=Path("secrets/keys"), alias="APP_PATH_KEYS")
     create_missing_paths: bool = Field(default=True, alias="APP__CREATE_MISSING_PATHS")
 
     @field_validator("env", mode="before")

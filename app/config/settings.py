@@ -15,30 +15,26 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=(
-            ".env",
-            ".env.dev",
-        ),
+        env_file=(".env", ".env.dev"),  # Urutan penting
         env_file_encoding="utf-8",
         case_sensitive=False,
         env_nested_delimiter="__",
         extra="allow",
     )
-    # App Global Information and setup
-    appinfo: AppConfig
 
-    # Jwt Setup
-    jwt_config: JwtConfig
-    token_config: TokenConfig
+    # Nested models
+    app: AppConfig
+    jwt: JwtConfig
+    token: TokenConfig
 
     @property
     def is_dev(self) -> bool:
-        return self.appinfo.is_development
+        return self.app.is_development
 
     @property
     def is_prod(self) -> bool:
-        return self.appinfo.is_production
+        return self.app.is_production
 
     @property
     def is_test(self) -> bool:
-        return self.appinfo.is_testing
+        return self.app.is_testing

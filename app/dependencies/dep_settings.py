@@ -5,7 +5,6 @@ mengikuti prinsip loose coupling dan separation of concerns.
 """
 
 import os
-import warnings
 from functools import lru_cache
 from pathlib import Path
 from typing import Annotated
@@ -43,13 +42,16 @@ def get_settings() -> Settings:
     else:  # development (default)
         env_files.append(".env.dev")
 
-    # Check file existence (optional warning, not blocking)
+    # Verify files exist
     for env_file in env_files:
-        if not os.path.exists(env_file):
-            warnings.warn(f"Environment file {env_file} tidak ditemukan", stacklevel=2)
+        if not os.path.isfile(env_file):
+            import warnings
 
-    # Using Pydantic Settings _env_file parameter for runtime loading
-    return Settings(_env_file=env_files)  # type: ignore
+            warnings.warn(f"Environment file {env_file} tidak ditemukan")
+
+    # Pass absolute paths to ensure files are found
+    abs_paths = [os.path.abspath(path) for path in env_files]
+    return Settings(_env_file=abs_paths)  # type: ignore
 
 
 def get_app_config() -> AppConfig:
@@ -62,7 +64,7 @@ def get_app_config() -> AppConfig:
         AppConfig: Konfigurasi aplikasi
     """
     settings = get_settings()
-    return settings.appinfo
+    return settings.app
 
 
 def get_jwt_config() -> JwtConfig:
@@ -72,7 +74,7 @@ def get_jwt_config() -> JwtConfig:
         JwtConfig: Pengaturan konfigurasi JWT
     """
     settings = get_settings()
-    return settings.jwt_config
+    return settings.jwt
 
 
 def get_path_settings() -> tuple[Path, Path]:
