@@ -61,5 +61,9 @@ user_info.json
 *.prompt.md
 *.chatmode.md
 
-#
+# Secrets
 secrets/
+
+# environments
+*.env
+*.env.*
