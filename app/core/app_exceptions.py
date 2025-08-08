@@ -1,12 +1,14 @@
 """Exception handler registry for the application (manual style)."""
 
 from collections.abc import Callable
+from typing import Any
 
 from app.core.exceptions import (
     AppExcpCaseError,
     ResourceNotFoundError,
     UnauthorizedError,
     ValidationError,
+    YamlReloadExceptionError,
 )
 from app.utils.log_setup import logger
 from fastapi import FastAPI, Request
@@ -34,10 +36,17 @@ def create_exception_handler(
         if exc.name:
             detail["message"] = f"{detail['message']} [{exc.name}]"
 
+        response_content: dict[str, Any] = {"detail": detail["message"]}
+        if hasattr(exc, "context") and exc.context is not None:
+            if isinstance(exc.context, dict):
+                response_content["context"] = exc.context
+            else:
+                response_content["context"] = str(exc.context)
+
         logger.exception(exc)
         return JSONResponse(
             status_code=status_code,
-            content={"detail": detail["message"]},
+            content=response_content,
         )
 
     return exception_handler  # type: ignore
@@ -81,5 +90,13 @@ def register_exception_handlers(app: FastAPI) -> None:
         create_exception_handler(
             AppExcpCaseError.status_code,
             AppExcpCaseError.default_message,
+        ),  # pyright: ignore[reportArgumentType]
+    )
+
+    app.add_exception_handler(
+        YamlReloadExceptionError,
+        create_exception_handler(
+            YamlReloadExceptionError.status_code,
+            YamlReloadExceptionError.default_message,
         ),  # pyright: ignore[reportArgumentType]
     )

@@ -15,9 +15,11 @@ class AppExcpCaseError(Exception):
         self,
         message: str | None = None,
         name: str | None = APP_NAME,
+        context: dict | None = None,
     ):
         self.message = message or self.default_message
         self.name = name
+        self.context = context or {}
         super().__init__(f"[{self.status_code}] {self.message}")
 
 
@@ -34,3 +36,8 @@ class ValidationError(AppExcpCaseError):
 class UnauthorizedError(AppExcpCaseError):
     default_message = "Unauthorized access."
     status_code = 401
+
+
+class YamlReloadExceptionError(AppExcpCaseError):
+    default_message = "Failed to reload YAML file."
+    status_code = 500
