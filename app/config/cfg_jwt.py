@@ -13,4 +13,4 @@ class JwtConfig(BaseModel):
 class TokenConfig(BaseModel):
     """Token configuration."""
 
-    token_expiration_minutes: int = Field(default=60)
+    expiration_minutes: int = 60
