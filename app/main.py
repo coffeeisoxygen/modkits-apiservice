@@ -17,9 +17,10 @@ from app.dependencies.dep_settings import (
     JwtConfigDep,
     TokenConfigDep,
 )
-from app.utils.log_setup import logger, logtrace_endpoint
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from .utils.log_setup import logger, logtrace_endpoint
 
 app = FastAPI(
     title="Modkits API Service",

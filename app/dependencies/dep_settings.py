@@ -38,11 +38,11 @@ def get_settings() -> Settings:
     env_files = [".env"]  # Base file always loaded first
 
     if app_env == "production":
-        env_files.append(".env.prod")
+        env_files.append(".env.production")
     elif app_env == "testing":
-        env_files.append(".env.test")
+        env_files.append(".env.testing")
     else:  # development (default)
-        env_files.append(".env.dev")
+        env_files.append(".env.development")
 
     # Verify files exist
     for env_file in env_files:
