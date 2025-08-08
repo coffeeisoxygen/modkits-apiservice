@@ -19,7 +19,7 @@ from app.dependencies.dep_settings import (
 from app.schemas.sch_module import ModuleInDB
 from app.schemas.sch_user import UserCreate, UserRead, UserReadList, UserUpdate
 from app.utils.log_setup import logger, logtrace_endpoint
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 
 router = APIRouter(prefix="/adm", tags=["Admin"])
 
@@ -189,8 +189,6 @@ async def get_user_by_id(
     """Get specific user by ID - Admin only."""
     user = user_repo.get_user_by_id(user_id)
     if not user:
-        from fastapi import HTTPException, status
-
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"User with ID {user_id} not found",

@@ -1,10 +1,10 @@
 """wrapper to login the user."""
 
-from app.router.rtr_admin import router as admin_router
-from app.router.rtr_auth import router as auth_router
+from app.router.management.rtr_admin import router as admin_router
+from app.router.management.rtr_auth import router as auth_router
 
 # from app.router.rtr_protected import router as protected_router
-from app.router.rtr_user import router as user_router
+from app.router.management.rtr_user import router as user_router
 from fastapi import APIRouter
 
 api_router = APIRouter()
