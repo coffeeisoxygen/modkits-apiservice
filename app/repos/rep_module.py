@@ -7,13 +7,19 @@ from app.dependencies.dep_settings import get_path_settings
 from app.schemas.sch_module import ModuleInDB
 from app.utils.log_setup import logger
 
-module_path: Path = get_path_settings()[0] / "modules.yaml"
-
 
 class ModuleRepository:
-    def __init__(self):
-        logger.info("Initializing ModuleRepository with path: %s", module_path)
-        self.file_path = module_path
+    def __init__(self, file_path: Path | None = None):
+        """Initialize ModuleRepository with optional file path.
+
+        Args:
+            file_path: Path to modules.yaml file. If None, uses default path from settings.
+        """
+        if file_path is None:
+            file_path = get_path_settings()[0] / "modules.yaml"
+
+        logger.info("Initializing ModuleRepository with path: %s", file_path)
+        self.file_path = file_path
         self._modules: list[ModuleInDB] = []
         self.reload()
 

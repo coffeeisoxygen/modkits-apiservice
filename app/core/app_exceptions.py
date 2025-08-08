@@ -29,7 +29,7 @@ def create_exception_handler(
     """
     detail: dict[str, str] = {"message": initial_detail}
 
-    async def exception_handler(_: Request, exc: AppExcpCaseError) -> JSONResponse:  # noqa: RUF029
+    async def exception_handler(_: Request, exc: AppExcpCaseError) -> JSONResponse:
         if exc.message:
             detail["message"] = exc.message
 

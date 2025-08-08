@@ -7,13 +7,19 @@ from app.dependencies.dep_settings import get_path_settings
 from app.schemas.sch_member import MemberInDB
 from app.utils.log_setup import logger
 
-module_path: Path = get_path_settings()[0] / "members.yaml"
-
 
 class MemberRepository:
-    def __init__(self):
-        logger.info("Initializing MemberRepository with path: %s", module_path)
-        self.file_path = module_path
+    def __init__(self, file_path: Path | None = None):
+        """Initialize MemberRepository with optional file path.
+
+        Args:
+            file_path: Path to members.yaml file. If None, uses default path from settings.
+        """
+        if file_path is None:
+            file_path = get_path_settings()[0] / "members.yaml"
+
+        logger.info("Initializing MemberRepository with path: %s", file_path)
+        self.file_path = file_path
         self._members: list[MemberInDB] = []
         self.reload()
 
@@ -56,10 +62,10 @@ class MemberRepository:
 
     def reload(self):
         """Memuat ulang semua data dari file dan memperbarui state internal."""
-        logger.info("Memulai proses reload ModuleRepository.")
+        logger.info("Memulai proses reload MemberRepository.")
         try:
-            self._modules = self._load_data_from_file()
-            logger.info("ModuleRepository berhasil dimuat ulang.")
+            self._members = self._load_data_from_file()
+            logger.info("MemberRepository berhasil dimuat ulang.")
         except YamlReloadExceptionError as e:
             # Jika terjadi error saat memuat ulang, log tapi biarkan data lama tetap ada
             logger.bind(error=e.message, context=e.context).error(

@@ -70,7 +70,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         method_ctx.set(method)
 
     def _log_response(
-        self, response: Response, start_time: float, logger_instance  # noqa: ANN001
+        self,
+        response: Response,
+        start_time: float,
+        logger_instance,  # noqa: ANN001
     ) -> None:
         execution_time = time.time() - start_time
         logger_instance.debug(
@@ -78,7 +81,11 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         )
 
     def _log_exception(
-        self, method: str, path: str, start_time: float, logger_instance  # noqa: ANN001
+        self,
+        method: str,
+        path: str,
+        start_time: float,
+        logger_instance,  # noqa: ANN001
     ) -> None:
         logger_instance.exception(f"Unhandled exception during {method} {path}")
         execution_time = time.time() - start_time

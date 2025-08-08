@@ -7,13 +7,19 @@ from app.dependencies.dep_settings import get_path_settings
 from app.schemas.sch_user import UserInDB
 from app.utils.log_setup import logger
 
-USERPATH: Path = get_path_settings()[0] / "users.yaml"
-
 
 class UserRepository:
-    def __init__(self):
-        logger.info("Initializing UserRepository with path: %s", USERPATH)
-        self.file_path = USERPATH
+    def __init__(self, file_path: Path | None = None):
+        """Initialize UserRepository with optional file path.
+
+        Args:
+            file_path: Path to users.yaml file. If None, uses default path from settings.
+        """
+        if file_path is None:
+            file_path = get_path_settings()[0] / "users.yaml"
+
+        logger.info("Initializing UserRepository with path: %s", file_path)
+        self.file_path = file_path
         self._users: list[UserInDB] = []
         self.reload()
 
