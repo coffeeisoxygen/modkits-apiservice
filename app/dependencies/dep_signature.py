@@ -8,7 +8,7 @@ from fastapi import Depends
 
 def get_signature_service() -> OtomaxSignatureService:
     """Get signature service instance.
-    
+
     Returns:
         OtomaxSignatureService: Instance of signature service
     """
