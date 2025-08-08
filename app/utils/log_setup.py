@@ -60,7 +60,7 @@ SENSITIVE_KEYWORDS = [
 
 FORMAT_PRODUCTION = "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan> | <level>{message}</level> | <cyan>{extra}</cyan>"
 
-FORMAT_DEVMODE = "<level>{level.name}</level>: <magenta>{name}:{function}:{line}</magenta> | {message} | {extra}"
+FORMAT_DEVMODE = "<level>{level.name}</level>: <magenta>{name}:{function}:{line}</magenta> | {message} > {extra}"
 
 FORMAT_DEVMODE_EXCEPTION = "<level>{level.name}</level>: <magenta>{module}:{name}:{function}:{line}>{process}</magenta> | {message} | {extra} | <red>{exception}</red>"
 

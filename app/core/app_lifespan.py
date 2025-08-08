@@ -5,10 +5,11 @@ Setup loguru logging and handle startup/shutdown events using lifespan context.
 
 from contextlib import asynccontextmanager
 
+from app.dependencies.dep_settings import get_app_config
 from app.utils.log_setup import logger, setup_loguru
 
-# Setup logging once at module level
-setup_loguru()
+LEVEL = get_app_config().log_level
+setup_loguru(level=LEVEL)
 
 
 @asynccontextmanager
