@@ -3,6 +3,7 @@ import time
 from app.core.app_exceptions import register_exception_handlers
 from app.core.app_lifespan import app_lifespan
 from app.core.app_middleware import LoggingMiddleware
+from app.core.app_router import api_router
 from app.dependencies.dep_context import (
     ClientIpDep,
     MethodDep,
@@ -37,6 +38,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 register_exception_handlers(app)
+app.include_router(api_router)
 
 
 @app.get("/", tags=["General"])

@@ -13,7 +13,7 @@ class HasherService:
         return cls._ph.hash(password)
 
     @classmethod
-    def verify_password(cls, hashed_password: str, password: str) -> bool:
+    def verify_password(cls, password: str, hashed_password: str) -> bool:
         """Verify a password against the given Argon2 hash."""
         try:
             return cls._ph.verify(hashed_password, password)

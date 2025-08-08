@@ -38,7 +38,7 @@ member_watcher = FileWatcher(file_path=member_file_path, callback=member_repo.re
 
 
 @asynccontextmanager
-async def app_lifespan(app):  # noqa: ANN001, RUF029
+async def app_lifespan(app):  # noqa: ANN001
     """Lifespan context for FastAPI app: setup logging and log events."""
     lifespan_logger.info("FastAPI application startup initiated")
     lifespan_logger.info("Seeding data files if not exist")

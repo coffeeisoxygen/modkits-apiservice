@@ -10,6 +10,7 @@ dependencies = [
     "fastapi-guard>=4.0.2",
     "fastapi[all]>=0.116.1",
     "loguru>=0.7.3",
+    "pyjwt>=2.10.1",
     "stackprinter>=0.2.12",
     "watchdog>=6.0.0",
 ]
