@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     app: AppConfig
     jwt: JwtConfig
     token: TokenConfig
-    log: LogSettings = LogSettings()  # Add logging configuration
+    log: LogSettings = LogSettings()
 
     @property
     def is_dev(self) -> bool:
